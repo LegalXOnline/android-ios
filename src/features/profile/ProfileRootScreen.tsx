@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -98,20 +98,17 @@ export function ProfileRootScreen() {
 
   const handleMenuPress = (item: MenuItem) => {
     if (item.route) {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push(item.route as any);
+      router.push(item.route as Href);
     }
   };
 
   const handleEditProfile = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/profile/edit' as any);
+    router.push('/profile/edit' as Href);
   };
 
   const handleConfirmLogout = () => {
     setShowLogoutModal(false);
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.replace('/(auth)/login' as any);
+    router.replace('/(auth)/login' as Href);
   };
 
   return (
@@ -146,7 +143,7 @@ export function ProfileRootScreen() {
         </View>
 
         <Pressable
-          onPress={() => router.push('/profile/lx-coins' as any)}
+          onPress={() => router.push('/profile/lx-coins' as Href)}
           style={({ pressed }) => [styles.coinsBanner, pressed && styles.pressed]}
         >
           <View style={styles.coinsIconCircle}>

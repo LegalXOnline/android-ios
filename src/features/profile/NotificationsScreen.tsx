@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
@@ -25,6 +25,12 @@ export function NotificationsScreen() {
   const [notifications, setNotifications] =
     useState<NotificationPayload[]>(PLACEHOLDER_NOTIFICATIONS);
   const [filterTab, setFilterTab] = useState<'All' | 'Unread' | 'Read'>('All');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
 
   const filteredNotifications = notifications.filter((item) => {
     if (filterTab === 'Unread') return !item.isRead;
@@ -137,10 +143,19 @@ export function NotificationsScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             title="No Notifications"
             description="You're all caught up! Updates regarding consultations and documents will appear here."
+            symbol={{ ios: 'bell.slash.fill', android: 'notifications_off', web: 'notifications_off' }}
             actionLabel="Return to Profile"
             onActionPress={() => router.back()}
           />

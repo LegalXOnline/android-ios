@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
 
 import {
   AppHeader,
@@ -9,9 +9,10 @@ import {
   LawyerCard,
   SafeScreenWrapper,
   SearchBar,
+  SkeletonList,
   type LawyerCardData,
 } from '@shared/components';
-import { Layout, Spacing } from '@theme';
+import { Colors, Layout, Spacing } from '@theme';
 
 import {
   LAWYER_CATEGORIES,
@@ -28,6 +29,15 @@ export function LawyerListingScreen() {
   const [selectedCategory, setSelectedCategory] = useState<LawyerCategory>('All');
   const [sortOption, setSortOption] = useState<LawyerSort>('rating');
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   const filteredLawyers = useMemo(() => {
     let list = PLACEHOLDER_LAWYERS_FULL.filter((lawyer) => {
@@ -157,27 +167,42 @@ export function LawyerListingScreen() {
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
       <AppHeader title="Talk to Lawyer" />
 
-      <FlatList
-        data={filteredLawyers}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          <EmptyState
-            title="No Lawyers Found"
-            description={`No advocate matches "${searchQuery || selectedCategory}". Try clearing your filters.`}
-            actionLabel="Reset Filters"
-            onActionPress={() => {
-              setSearchQuery('');
-              setSelectedCategory('All');
-              setSortOption('rating');
-            }}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.skeletonPadding}>
+          <SkeletonList count={3} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredLawyers}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              title="No Lawyers Found"
+              description={`No advocate matches "${searchQuery || selectedCategory}". Try clearing your filters.`}
+              symbol={{ ios: 'person.crop.circle.badge.questionmark', android: 'person_search', web: 'person_search' }}
+              actionLabel="Reset Filters"
+              onActionPress={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSortOption('rating');
+              }}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeScreenWrapper>
   );
 }
@@ -186,6 +211,10 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingBottom: Spacing.xxl + 20,
+  },
+  skeletonPadding: {
+    paddingHorizontal: Layout.screenPaddingHWide,
+    paddingTop: Spacing.md,
   },
   headerContent: {
     gap: Spacing.md,

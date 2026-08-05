@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
@@ -19,8 +19,7 @@ export function SavedArticlesScreen() {
   );
 
   const handleArticlePress = (id: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push(`/knowledge/${id}` as any);
+    router.push(`/knowledge/${id}` as Href);
   };
 
   const handleRemoveBookmark = (id: string) => {
@@ -49,8 +48,9 @@ export function SavedArticlesScreen() {
           <EmptyState
             title="No Saved Articles"
             description="You haven't bookmarked any legal guides or articles yet."
+            symbol={{ ios: 'bookmark.slash.fill', android: 'bookmark_border', web: 'bookmark_border' }}
             actionLabel="Explore Knowledge Centre"
-            onActionPress={() => router.push('/(tabs)/knowledge-centre' as any)}
+            onActionPress={() => router.push('/(tabs)/knowledge-centre' as Href)}
           />
         }
         showsVerticalScrollIndicator={false}

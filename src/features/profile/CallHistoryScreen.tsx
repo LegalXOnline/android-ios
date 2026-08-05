@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -48,8 +48,7 @@ export function CallHistoryScreen() {
   };
 
   const handleBookAgain = (lawyerId: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push(`/lawyer/${lawyerId}` as any);
+    router.push(`/lawyer/${lawyerId}` as Href);
   };
 
   const renderItem = ({ item }: { item: ConsultationHistoryPayload }) => (
@@ -129,8 +128,9 @@ export function CallHistoryScreen() {
           <EmptyState
             title="No Consultations Found"
             description="You haven't scheduled or completed any advocate consultations under this filter."
+            symbol={{ ios: 'phone.down.fill', android: 'call_end', web: 'call_end' }}
             actionLabel="Find an Advocate"
-            onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as any)}
+            onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as Href)}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -218,8 +218,7 @@ export function CallHistoryScreen() {
                     label="Need Assistance?"
                     onPress={() => {
                       setSelectedConsultation(null);
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      router.push('/profile/support' as any);
+                      router.push('/profile/support' as Href);
                     }}
                     testID="consultation-support-button"
                   />

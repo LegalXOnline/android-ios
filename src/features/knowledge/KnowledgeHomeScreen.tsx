@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
 
 import {
   AppHeader,
@@ -9,8 +9,9 @@ import {
   SafeScreenWrapper,
   SearchBar,
   SectionHeader,
+  SkeletonList,
 } from '@shared/components';
-import { Layout, Spacing } from '@theme';
+import { Colors, Layout, Spacing } from '@theme';
 
 import { ArticleCard } from './components/ArticleCard';
 import { FeaturedArticleCard } from './components/FeaturedArticleCard';
@@ -30,6 +31,15 @@ export function KnowledgeHomeScreen() {
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
   const [sortOption, setSortOption] = useState<ArticleSort>('newest');
   const [articles, setArticles] = useState<ArticlePayload[]>(PLACEHOLDER_ARTICLES);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   const featuredArticle = useMemo(
     () => articles.find((a) => a.isFeatured) || articles[0],
@@ -191,32 +201,47 @@ export function KnowledgeHomeScreen() {
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
       <AppHeader title="Knowledge Centre" />
 
-      <FlatList
-        data={filteredArticles}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          <EmptyState
-            title={showBookmarksOnly ? 'No Bookmarks Yet' : 'No Articles Found'}
-            description={
-              showBookmarksOnly
-                ? 'Save articles by tapping the bookmark icon to read them later.'
-                : `No articles matched "${searchQuery || selectedCategory}".`
-            }
-            actionLabel="Reset Filters"
-            onActionPress={() => {
-              setSearchQuery('');
-              setSelectedCategory('All');
-              setShowBookmarksOnly(false);
-              setSortOption('newest');
-            }}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.skeletonPadding}>
+          <SkeletonList count={3} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredArticles}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              title={showBookmarksOnly ? 'No Bookmarks Yet' : 'No Articles Found'}
+              description={
+                showBookmarksOnly
+                  ? 'Save articles by tapping the bookmark icon to read them later.'
+                  : `No articles matched "${searchQuery || selectedCategory}".`
+              }
+              symbol={{ ios: 'bookmark.slash.fill', android: 'article', web: 'article' }}
+              actionLabel="Reset Filters"
+              onActionPress={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setShowBookmarksOnly(false);
+                setSortOption('newest');
+              }}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeScreenWrapper>
   );
 }
@@ -225,6 +250,10 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingBottom: Spacing.xxl + 20,
+  },
+  skeletonPadding: {
+    paddingHorizontal: Layout.screenPaddingHWide,
+    paddingTop: Spacing.md,
   },
   headerContent: {
     gap: Spacing.lg,

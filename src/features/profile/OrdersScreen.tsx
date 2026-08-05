@@ -1,7 +1,7 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Modal, Pressable, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
@@ -23,6 +23,12 @@ export function OrdersScreen() {
   const [selectedFilter, setSelectedFilter] = useState<'All' | OrderStatus>('All');
   const [selectedOrder, setSelectedOrder] = useState<OrderPayload | null>(null);
   const [toastNotice, setToastNotice] = useState('');
+  const [refreshing, setRefreshing] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => setRefreshing(false), 1000);
+  };
 
   const filteredOrders = orders.filter((o) => {
     if (selectedFilter === 'All') return true;
@@ -111,12 +117,21 @@ export function OrdersScreen() {
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
+        refreshControl={
+          <RefreshControl
+            refreshing={refreshing}
+            onRefresh={onRefresh}
+            tintColor={Colors.primary}
+            colors={[Colors.primary]}
+          />
+        }
         ListEmptyComponent={
           <EmptyState
             title="No Orders Found"
             description="No document or consultation orders match your selected filter."
+            symbol={{ ios: 'tray.fill', android: 'inbox', web: 'inbox' }}
             actionLabel="Explore Services"
-            onActionPress={() => router.push('/(tabs)/documentation' as any)}
+            onActionPress={() => router.push('/(tabs)/documentation' as Href)}
           />
         }
         showsVerticalScrollIndicator={false}
@@ -224,8 +239,7 @@ export function OrdersScreen() {
                     label="Need Help with this Order?"
                     onPress={() => {
                       setSelectedOrder(null);
-                      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                      router.push('/profile/support' as any);
+                      router.push('/profile/support' as Href);
                     }}
                     testID="order-help-button"
                   />

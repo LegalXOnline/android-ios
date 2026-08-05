@@ -1,12 +1,4 @@
-/**
- * EmptyState — Centered empty content placeholder.
- *
- * Rules (04_Design_System.md §6, 24_AI_BUILD_GUIDE §27):
- * - Every list-type screen implements its documented empty state.
- * - Copy and CTA are passed as props — EmptyState only renders, never decides.
- * - Display typography (28px semibold) per 04_Design_System §3: "Onboarding / empty states only".
- * - Optional CTA action button (uses SecondaryButton to avoid misusing Gold on non-primary actions).
- */
+import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import {
   StyleSheet,
   Text,
@@ -15,13 +7,14 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { Colors, Spacing, Typography } from '@theme';
+import { Colors, FontSize, FontWeight, Spacing, Typography } from '@theme';
+
 import { SecondaryButton } from '../primitives/SecondaryButton';
 
 interface EmptyStateProps {
   title: string;
   description?: string;
-  /** Label for the optional action button */
+  symbol?: SymbolViewProps['name'];
   actionLabel?: string;
   onActionPress?: () => void;
   style?: StyleProp<ViewStyle>;
@@ -30,6 +23,7 @@ interface EmptyStateProps {
 export function EmptyState({
   title,
   description,
+  symbol,
   actionLabel,
   onActionPress,
   style,
@@ -38,6 +32,12 @@ export function EmptyState({
 
   return (
     <View style={[styles.container, style]}>
+      {symbol ? (
+        <View style={styles.iconCircle}>
+          <SymbolView name={symbol} size={32} tintColor={Colors.primary} />
+        </View>
+      ) : null}
+
       <Text style={styles.title}>{title}</Text>
 
       {description ? (
@@ -63,17 +63,29 @@ const styles = StyleSheet.create({
     padding: Spacing.xxxl,
     gap: Spacing.md,
   },
+  iconCircle: {
+    width: 64,
+    height: 64,
+    borderRadius: 32,
+    backgroundColor: '#FEFCF5',
+    borderWidth: 1,
+    borderColor: Colors.border,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   title: {
-    // Display typography — empty states only (04_Design_System §3)
     ...Typography.display,
+    fontSize: 22,
+    fontWeight: FontWeight.semibold,
     color: Colors.ink,
     textAlign: 'center',
   },
   description: {
     ...Typography.body,
+    fontSize: FontSize.bodySmall,
     color: Colors.textSecondary,
     textAlign: 'center',
-    lineHeight: 22,
+    lineHeight: 20,
   },
   button: {
     marginTop: Spacing.sm,

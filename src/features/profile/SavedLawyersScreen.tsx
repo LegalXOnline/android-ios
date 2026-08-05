@@ -1,4 +1,4 @@
-import { useRouter } from 'expo-router';
+import { useRouter, type Href } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { FlatList, StyleSheet, View } from 'react-native';
 
@@ -21,8 +21,7 @@ export function SavedLawyersScreen() {
 
   const handleLawyerPress = useCallback(
     (lawyerId: string) => {
-      // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      router.push(`/lawyer/${lawyerId}` as any);
+      router.push(`/lawyer/${lawyerId}` as Href);
     },
     [router]
   );
@@ -54,8 +53,9 @@ export function SavedLawyersScreen() {
           <EmptyState
             title="No Saved Lawyers"
             description="You haven't favorited any advocates yet. Tap the heart icon on any advocate profile to save them here."
+            symbol={{ ios: 'heart.slash.fill', android: 'favorite_border', web: 'favorite_border' }}
             actionLabel="Browse Advocates"
-            onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as any)}
+            onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as Href)}
           />
         }
         showsVerticalScrollIndicator={false}

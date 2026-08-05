@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { FlatList, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
 
 import {
   AppHeader,
@@ -10,8 +10,9 @@ import {
   SearchBar,
   SectionHeader,
   ServiceCard,
+  SkeletonList,
 } from '@shared/components';
-import { Layout, Spacing } from '@theme';
+import { Colors, Layout, Spacing } from '@theme';
 
 import { FeaturedVideoCard } from './components/FeaturedVideoCard';
 import { VerificationCard } from './components/VerificationCard';
@@ -33,6 +34,15 @@ export function DocumentationListScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<DocCategory>('All');
   const [sortOption, setSortOption] = useState<DocSort>('default');
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLoading] = useState(false);
+
+  const onRefresh = () => {
+    setRefreshing(true);
+    setTimeout(() => {
+      setRefreshing(false);
+    }, 1000);
+  };
 
   const filteredServices = useMemo(() => {
     let list = DOCUMENT_SERVICES.filter((service) => {
@@ -148,27 +158,42 @@ export function DocumentationListScreen() {
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
       <AppHeader title="Documentation" />
-      <FlatList
-        data={filteredServices}
-        renderItem={renderItem}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={renderHeader}
-        contentContainerStyle={styles.listContent}
-        ItemSeparatorComponent={() => <View style={styles.separator} />}
-        ListEmptyComponent={
-          <EmptyState
-            title="No Services Found"
-            description={`No document service matches "${searchQuery || selectedCategory}".`}
-            actionLabel="Reset Filters"
-            onActionPress={() => {
-              setSearchQuery('');
-              setSelectedCategory('All');
-              setSortOption('default');
-            }}
-          />
-        }
-        showsVerticalScrollIndicator={false}
-      />
+      {isLoading ? (
+        <View style={styles.skeletonPadding}>
+          <SkeletonList count={4} />
+        </View>
+      ) : (
+        <FlatList
+          data={filteredServices}
+          renderItem={renderItem}
+          keyExtractor={(item) => item.id}
+          ListHeaderComponent={renderHeader}
+          contentContainerStyle={styles.listContent}
+          ItemSeparatorComponent={() => <View style={styles.separator} />}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={onRefresh}
+              tintColor={Colors.primary}
+              colors={[Colors.primary]}
+            />
+          }
+          ListEmptyComponent={
+            <EmptyState
+              title="No Services Found"
+              description={`No document service matches "${searchQuery || selectedCategory}".`}
+              symbol={{ ios: 'doc.viewfinder.fill', android: 'search', web: 'search' }}
+              actionLabel="Reset Filters"
+              onActionPress={() => {
+                setSearchQuery('');
+                setSelectedCategory('All');
+                setSortOption('default');
+              }}
+            />
+          }
+          showsVerticalScrollIndicator={false}
+        />
+      )}
     </SafeScreenWrapper>
   );
 }
@@ -177,6 +202,10 @@ const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingBottom: Spacing.xxl + 20,
+  },
+  skeletonPadding: {
+    paddingHorizontal: Layout.screenPaddingHWide,
+    paddingTop: Spacing.md,
   },
   headerContent: {
     gap: Spacing.md,
