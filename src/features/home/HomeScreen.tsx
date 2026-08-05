@@ -77,10 +77,9 @@ export function HomeScreen() {
     router.push(`/(tabs)/documentation/${serviceId}` as any);
   };
 
-  const handleLawyerPress = (_lawyerId: string) => {
-    // Phase 5 will route to: router.push(`/lawyer/${lawyerId}`)
-    // SCR-09 Lawyer Profile not built yet — routes to Talk to Lawyer tab
-    router.push('/(tabs)/talk-to-lawyer');
+  const handleLawyerPress = (lawyerId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push(`/lawyer/${lawyerId}` as any);
   };
 
   const handleFavouritePress = (_lawyerId: string) => {

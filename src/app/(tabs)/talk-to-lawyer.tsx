@@ -1,10 +1,10 @@
 /**
- * Talk to Lawyer tab — placeholder.
- * Full spec: 09_Module_Talk_to_Lawyer.md
- * Screens: SCR-07, SCR-08, SCR-09
+ * Talk to Lawyer Tab — SCR-07
+ *
+ * Spec: 09_Module_Talk_to_Lawyer.md
  */
-import { View } from 'react-native';
+import { LawyerListingScreen } from '@features/lawyer/LawyerListingScreen';
 
 export default function TalkToLawyerTab() {
-  return <View />;
+  return <LawyerListingScreen />;
 }

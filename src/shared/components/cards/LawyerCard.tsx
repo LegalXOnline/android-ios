@@ -1,19 +1,18 @@
 /**
- * LawyerCard — Talk to Lawyer listing card.
+ * LawyerCard — Clean, Premium Marketplace Listing Card.
  *
- * Rules (04_Design_System.md §5.2):
- * - Photo (circular), name, rating (star + number), review count,
- *   experience badge, language tags, practice-area tags.
- * - Three mode buttons (Chat/Voice/Video) each showing per-minute price inline.
- * - Mode buttons are PRESENTATION ONLY — no onModePress (Phase 2 scope).
- * - Favourite icon (heart outline) top-right — calls onFavouritePress.
- * - Memoized for FlatList performance (24_AI_BUILD_GUIDE §15).
+ * Spec & Requirements:
+ * - Avatar, Name, Rating (star + number + count), Experience, Inline Availability Dot.
+ * - Max 2 Practice Areas as subtle tags.
+ * - Max 2 Languages as plain text ("English, Hindi").
+ * - Starting price line ("Starting from ₹X/min") + "View Profile" secondary CTA button.
+ * - Top-right Favourite heart button.
+ * - Web compliant: Sibling interactive elements to avoid nested HTML <button> errors.
  */
 import { SymbolView } from 'expo-symbols';
 import { memo } from 'react';
 import {
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -21,9 +20,9 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { Colors, FontSize, FontWeight, Radii, Shadows, Spacing, Typography } from '@theme';
 import { Avatar } from '../primitives/Avatar';
-import { Chip } from '../primitives/Chip';
+import { SecondaryButton } from '../primitives/SecondaryButton';
 
 export interface LawyerCardData {
   id: string;
@@ -64,101 +63,104 @@ export const LawyerCard = memo(function LawyerCard({
     .join('')
     .slice(0, 2);
 
+  // Maximum 2 practice areas & languages for clean listing view
+  const topPracticeAreas = lawyer.practice_areas.slice(0, 2);
+  const topLanguages = lawyer.languages.slice(0, 2).join(', ');
+
+  // Calculate lowest starting fee
+  const minFee = Math.min(lawyer.fee_chat, lawyer.fee_voice, lawyer.fee_video);
+
   return (
     <View style={[styles.card, style]}>
-      {/* ─── Main card body pressable ─── */}
+      {/* ─── Main Card Body (Pressable) ─── */}
       <Pressable
         onPress={onPress}
         testID={testID}
         accessibilityRole="button"
-        accessibilityLabel={`${lawyer.name}. ${lawyer.experience_years} years experience. Rating ${lawyer.rating_avg}`}
-        style={({ pressed }) => [
-          styles.cardBody,
-          pressed && styles.pressed,
-        ]}
+        accessibilityLabel={`${lawyer.name}. ${lawyer.experience_years} years experience.`}
+        style={({ pressed }) => [styles.cardBody, pressed && styles.pressed]}
       >
-        {/* ─── Header row ─── */}
+        {/* Header Row: Avatar + Info */}
         <View style={styles.headerRow}>
           <Avatar
             uri={lawyer.photo_url}
             initials={initials}
-            size="lg"
+            size="md"
             accessibilityLabel={`${lawyer.name} photo`}
           />
 
           <View style={styles.headerInfo}>
-            {/* Name */}
             <Text style={styles.name} numberOfLines={1}>
               {lawyer.name}
             </Text>
 
-            {/* Rating row */}
-            <View style={styles.ratingRow}>
-              <SymbolView
-                name={{ ios: 'star.fill', android: 'star', web: 'star' }}
-                size={13}
-                tintColor={Colors.primary}
-              />
-              <Text style={styles.ratingText}>
-                {lawyer.rating_avg.toFixed(1)}
-              </Text>
-              <Text style={styles.reviewCount}>
-                ({lawyer.review_count} reviews)
-              </Text>
+            {/* Rating, Experience & Availability Inline */}
+            <View style={styles.metaRow}>
+              <View style={styles.ratingRow}>
+                <SymbolView
+                  name={{ ios: 'star.fill', android: 'star', web: 'star' }}
+                  size={13}
+                  tintColor={Colors.primary}
+                />
+                <Text style={styles.ratingText}>{lawyer.rating_avg.toFixed(1)}</Text>
+                <Text style={styles.reviewCount}>({lawyer.review_count})</Text>
+              </View>
+
+              <Text style={styles.dotSeparator}>•</Text>
+
+              <Text style={styles.experience}>{lawyer.experience_years} yrs exp</Text>
+
+              {lawyer.is_available_now && (
+                <>
+                  <Text style={styles.dotSeparator}>•</Text>
+                  <View style={styles.availableBadgeInline}>
+                    <View style={styles.availableDot} />
+                    <Text style={styles.availableText}>Available</Text>
+                  </View>
+                </>
+              )}
             </View>
-
-            {/* Experience */}
-            <Text style={styles.experience}>
-              {lawyer.experience_years} yrs experience
-            </Text>
           </View>
         </View>
 
-        {/* ─── Tags: Languages ─── */}
-        {lawyer.languages.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tagRow}
-            contentContainerStyle={styles.tagContent}
-          >
-            {lawyer.languages.map((lang) => (
-              <Chip key={lang} label={lang} />
+        {/* Practice Area Subtle Tags (Max 2) */}
+        {topPracticeAreas.length > 0 && (
+          <View style={styles.tagsRow}>
+            {topPracticeAreas.map((area) => (
+              <View key={area} style={styles.subtleTag}>
+                <Text style={styles.subtleTagText}>{area}</Text>
+              </View>
             ))}
-          </ScrollView>
-        )}
-
-        {/* ─── Tags: Practice areas ─── */}
-        {lawyer.practice_areas.length > 0 && (
-          <ScrollView
-            horizontal
-            showsHorizontalScrollIndicator={false}
-            style={styles.tagRow}
-            contentContainerStyle={styles.tagContent}
-          >
-            {lawyer.practice_areas.map((area) => (
-              <Chip key={area} label={area} />
-            ))}
-          </ScrollView>
-        )}
-
-        {/* ─── Mode buttons (presentation only) ─── */}
-        <View style={styles.modeRow}>
-          <ModeButton label="Chat" price={lawyer.fee_chat} />
-          <ModeButton label="Voice" price={lawyer.fee_voice} />
-          <ModeButton label="Video" price={lawyer.fee_video} />
-        </View>
-
-        {/* Availability indicator */}
-        {lawyer.is_available_now && (
-          <View style={styles.availableRow}>
-            <View style={styles.availableDot} />
-            <Text style={styles.availableText}>Available now</Text>
           </View>
+        )}
+
+        {/* Languages Plain Text Line (Max 2) */}
+        {topLanguages.length > 0 && (
+          <Text style={styles.languagesText} numberOfLines={1}>
+            Speaks: {topLanguages}
+          </Text>
         )}
       </Pressable>
 
-      {/* ─── Favourite button (sibling Pressable, top-right absolute) ─── */}
+      {/* Divider */}
+      <View style={styles.divider} />
+
+      {/* ─── Footer Section: Price & View Profile Button ─── */}
+      <View style={styles.footerRow}>
+        <View style={styles.priceBox}>
+          <Text style={styles.priceLabel}>Starting from</Text>
+          <Text style={styles.priceValue}>₹{minFee}/min</Text>
+        </View>
+
+        <SecondaryButton
+          label="View Profile"
+          onPress={onPress}
+          style={styles.viewProfileButton}
+          testID={`view-profile-${lawyer.id}`}
+        />
+      </View>
+
+      {/* ─── Top-Right Favourite Button (Sibling Pressable) ─── */}
       <Pressable
         onPress={onFavouritePress}
         accessibilityRole="button"
@@ -173,52 +175,12 @@ export const LawyerCard = memo(function LawyerCard({
               ? { ios: 'heart.fill', android: 'favorite', web: 'favorite' }
               : { ios: 'heart', android: 'favorite_border', web: 'favorite_border' }
           }
-          size={22}
+          size={20}
           tintColor={isFavourited ? Colors.danger : Colors.textSecondary}
         />
       </Pressable>
     </View>
   );
-});
-
-// ─── ModeButton — presentation-only inner component ───────────────────────────
-// Shows mode label + per-minute price. Not interactive at the card level.
-// The booking flow (SCR-10) handles mode selection — 24_AI_BUILD_GUIDE §9.
-
-interface ModeButtonProps {
-  label: string;
-  price: number;
-}
-
-function ModeButton({ label, price }: ModeButtonProps) {
-  return (
-    <View style={modeStyles.button}>
-      <Text style={modeStyles.label}>{label}</Text>
-      <Text style={modeStyles.price}>₹{price}/min</Text>
-    </View>
-  );
-}
-
-const modeStyles = StyleSheet.create({
-  button: {
-    flex: 1,
-    alignItems: 'center',
-    paddingVertical: Spacing.sm,
-    borderRadius: Radii.button,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    backgroundColor: Colors.surface,
-    gap: 2,
-  },
-  label: {
-    fontSize: FontSize.label,
-    fontWeight: FontWeight.medium,
-    color: Colors.ink,
-  },
-  price: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.textSecondary,
-  },
 });
 
 const styles = StyleSheet.create({
@@ -231,30 +193,38 @@ const styles = StyleSheet.create({
     ...Shadows.card,
   },
   cardBody: {
-    padding: Layout.cardPadding,
-    gap: Spacing.md,
+    padding: Spacing.md,
+    gap: Spacing.sm,
   },
   pressed: {
-    opacity: 0.85,
+    opacity: 0.88,
   },
   headerRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.md,
   },
   headerInfo: {
     flex: 1,
-    gap: Spacing.xs,
+    gap: 3,
     paddingRight: Spacing.xl,
   },
   name: {
     ...Typography.h2,
+    fontSize: FontSize.h2,
+    fontWeight: FontWeight.semibold,
     color: Colors.ink,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    flexWrap: 'wrap',
+    gap: 4,
   },
   ratingRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 3,
   },
   ratingText: {
     fontSize: FontSize.label,
@@ -265,43 +235,86 @@ const styles = StyleSheet.create({
     fontSize: FontSize.bodySmall,
     color: Colors.textSecondary,
   },
-  experience: {
-    ...Typography.bodySmall,
+  dotSeparator: {
+    fontSize: FontSize.bodySmall,
     color: Colors.textSecondary,
   },
-  favouriteButton: {
-    position: 'absolute',
-    top: Layout.cardPadding,
-    right: Layout.cardPadding,
-    zIndex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
+  experience: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.textSecondary,
   },
-  tagRow: {
-    flexGrow: 0,
-  },
-  tagContent: {
-    gap: Spacing.xs,
-    flexDirection: 'row',
-  },
-  modeRow: {
-    flexDirection: 'row',
-    gap: Spacing.sm,
-  },
-  availableRow: {
+  availableBadgeInline: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: 4,
   },
   availableDot: {
-    width: 8,
-    height: 8,
-    borderRadius: 4,
+    width: 6,
+    height: 6,
+    borderRadius: 3,
     backgroundColor: Colors.success,
   },
   availableText: {
     fontSize: FontSize.bodySmall,
     color: Colors.success,
     fontWeight: FontWeight.medium,
+  },
+  favouriteButton: {
+    position: 'absolute',
+    top: Spacing.md,
+    right: Spacing.md,
+    zIndex: 1,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  tagsRow: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+    marginTop: 2,
+  },
+  subtleTag: {
+    backgroundColor: Colors.surface,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.sm,
+    paddingHorizontal: Spacing.xs + 2,
+    paddingVertical: 3,
+  },
+  subtleTagText: {
+    fontSize: FontSize.bodySmall,
+    fontWeight: FontWeight.medium,
+    color: Colors.ink,
+  },
+  languagesText: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.textSecondary,
+  },
+  divider: {
+    height: 1,
+    backgroundColor: Colors.border,
+  },
+  footerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm + 2,
+  },
+  priceBox: {
+    gap: 1,
+  },
+  priceLabel: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  priceValue: {
+    ...Typography.price,
+    fontSize: FontSize.body,
+    color: Colors.primary,
+  },
+  viewProfileButton: {
+    minWidth: 110,
+    height: 36,
   },
 });
