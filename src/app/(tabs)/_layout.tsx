@@ -1,4 +1,5 @@
 import { Tabs } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
 import { Platform } from 'react-native';
 
 import { Colors } from '@theme';
@@ -28,6 +29,13 @@ export default function TabsLayout() {
         options={{
           title: 'Home',
           tabBarAccessibilityLabel: 'Home tab',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'house.fill', android: 'home', web: 'home' }}
+              size={size || 24}
+              tintColor={color}
+            />
+          ),
         }}
       />
 
@@ -36,6 +44,13 @@ export default function TabsLayout() {
         options={{
           title: 'Documentation',
           tabBarAccessibilityLabel: 'Documentation tab',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'doc.text.fill', android: 'description', web: 'description' }}
+              size={size || 24}
+              tintColor={color}
+            />
+          ),
         }}
         listeners={({ navigation }) => ({
           tabPress: () => {
@@ -49,6 +64,13 @@ export default function TabsLayout() {
         options={{
           title: 'Knowledge',
           tabBarAccessibilityLabel: 'Knowledge Centre tab',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'book.fill', android: 'menu_book', web: 'menu_book' }}
+              size={size || 24}
+              tintColor={color}
+            />
+          ),
         }}
       />
 
@@ -57,6 +79,13 @@ export default function TabsLayout() {
         options={{
           title: 'Talk to Lawyer',
           tabBarAccessibilityLabel: 'Talk to Lawyer tab',
+          tabBarIcon: ({ color, size }) => (
+            <SymbolView
+              name={{ ios: 'person.fill', android: 'support_agent', web: 'support_agent' }}
+              size={size || 24}
+              tintColor={color}
+            />
+          ),
         }}
       />
     </Tabs>
