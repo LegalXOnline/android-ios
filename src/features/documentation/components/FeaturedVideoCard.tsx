@@ -6,7 +6,7 @@
 import { StyleSheet, View } from 'react-native';
 
 import { SectionHeader, VideoCard } from '@shared/components';
-import { Layout, Spacing } from '@theme';
+import { Spacing } from '@theme';
 
 interface FeaturedVideoCardProps {
   videoUrl?: string | null;
@@ -27,7 +27,6 @@ export function FeaturedVideoCard({
 
 const styles = StyleSheet.create({
   container: {
-    paddingHorizontal: Layout.screenPaddingHWide,
     gap: Spacing.xs,
   },
   header: {

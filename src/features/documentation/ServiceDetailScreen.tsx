@@ -132,6 +132,8 @@ export function ServiceDetailScreen() {
               </Text>
               <Pressable
                 onPress={() => setIsPlayingVideo(!isPlayingVideo)}
+                accessibilityRole="button"
+                accessibilityLabel={isPlayingVideo ? 'Pause guide video' : 'Play explanation video'}
                 style={styles.videoBtn}
               >
                 <Text style={styles.videoBtnText}>
@@ -159,16 +161,22 @@ export function ServiceDetailScreen() {
             <Text style={styles.sectionTitle}>What is this Service?</Text>
             <View style={styles.infoCard}>
               <Text style={styles.infoBody}>{service.whatIsBody}</Text>
-              <Text style={styles.infoCitation}>Statutory Source: {service.whatIsCitation}</Text>
+              <View style={styles.citationBlock}>
+                <Text style={styles.infoCitation}>{service.whatIsCitation}</Text>
+              </View>
             </View>
           </View>
 
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Service Benefits</Text>
             {service.benefits.map((benefit: string, idx: number) => (
-              <View key={idx} style={styles.docItem}>
-                <Text style={styles.bullet}>•</Text>
-                <Text style={styles.docText}>{benefit}</Text>
+              <View key={idx} style={styles.featureItem}>
+                <SymbolView
+                  name={{ ios: 'star.fill', android: 'star', web: 'star' }}
+                  size={16}
+                  tintColor={Colors.primary}
+                />
+                <Text style={styles.featureText}>{benefit}</Text>
               </View>
             ))}
           </View>
@@ -434,7 +442,12 @@ const styles = StyleSheet.create({
     fontSize: 11,
     color: Colors.textSecondary,
     fontStyle: 'italic',
-    marginTop: 4,
+  },
+  citationBlock: {
+    borderLeftWidth: 3,
+    borderLeftColor: Colors.primary,
+    paddingLeft: Spacing.sm,
+    marginTop: Spacing.xs,
   },
   docItem: {
     flexDirection: 'row',

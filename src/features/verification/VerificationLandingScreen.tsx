@@ -9,9 +9,10 @@ import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import { AppHeader, Badge, PrimaryButton, SafeScreenWrapper } from '@shared/components';
+import { AppHeader, Badge, SafeScreenWrapper } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 
+import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { VERIFICATION_PLANS, useVerificationStore, type VerificationPlanId } from './verification.store';
 
 export function VerificationLandingScreen() {
@@ -37,51 +38,51 @@ export function VerificationLandingScreen() {
         onBackPress={() => router.back()}
       />
 
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* Header subtitle */}
-        <View style={styles.subtitleBlock}>
-          <Text style={styles.heading}>Choose Verification Plan</Text>
-          <Text style={styles.subtitle}>
-            Select the review package that best fits your document audit requirements.
-          </Text>
-        </View>
+      <View style={styles.container}>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          showsVerticalScrollIndicator={false}
+        >
+          {/* Header subtitle */}
+          <View style={styles.subtitleBlock}>
+            <Text style={styles.heading}>Choose Verification Plan</Text>
+            <Text style={styles.subtitle}>
+              Select the review package that best fits your document audit requirements.
+            </Text>
+          </View>
 
-        {/* Plan 1: AI + Expert Review (₹99) */}
-        <PlanCard
-          title={VERIFICATION_PLANS.REVIEW_ONLY.title}
-          priceLine={VERIFICATION_PLANS.REVIEW_ONLY.priceLine}
-          unitLabel="/ document"
-          includes={VERIFICATION_PLANS.REVIEW_ONLY.includes}
-          isSelected={selectedPlanId === 'review_only'}
-          onSelect={() => handleSelectPlan('review_only')}
-          badgeText="POPULAR"
-        />
-
-        {/* Plan 2: Expert Review + Consultation (₹499) */}
-        <PlanCard
-          title={VERIFICATION_PLANS.REVIEW_CONSULTATION.title}
-          priceLine={VERIFICATION_PLANS.REVIEW_CONSULTATION.priceLine}
-          unitLabel="/ document + call"
-          includes={VERIFICATION_PLANS.REVIEW_CONSULTATION.includes}
-          isSelected={selectedPlanId === 'review_consultation'}
-          onSelect={() => handleSelectPlan('review_consultation')}
-          badgeText="RECOMMENDED"
-          isRecommended
-        />
-
-        {/* Large Continue Button at Bottom */}
-        <View style={styles.ctaContainer}>
-          <PrimaryButton
-            label="Continue to Upload"
-            onPress={handleContinue}
-            testID="landing-continue-button"
+          {/* Plan 1: AI + Expert Review (₹99) */}
+          <PlanCard
+            title={VERIFICATION_PLANS.REVIEW_ONLY.title}
+            priceLine={VERIFICATION_PLANS.REVIEW_ONLY.priceLine}
+            unitLabel="/ document"
+            includes={VERIFICATION_PLANS.REVIEW_ONLY.includes}
+            isSelected={selectedPlanId === 'review_only'}
+            onSelect={() => handleSelectPlan('review_only')}
+            badgeText="POPULAR"
           />
-        </View>
-      </ScrollView>
+
+          {/* Plan 2: Expert Review + Consultation (₹499) */}
+          <PlanCard
+            title={VERIFICATION_PLANS.REVIEW_CONSULTATION.title}
+            priceLine={VERIFICATION_PLANS.REVIEW_CONSULTATION.priceLine}
+            unitLabel="/ document + call"
+            includes={VERIFICATION_PLANS.REVIEW_CONSULTATION.includes}
+            isSelected={selectedPlanId === 'review_consultation'}
+            onSelect={() => handleSelectPlan('review_consultation')}
+            badgeText="RECOMMENDED"
+            isRecommended
+          />
+        </ScrollView>
+
+        {/* Sticky CTA — consistent with Upload and Consultation screens */}
+        <StickyBottomCTA
+          label="Continue to Upload"
+          onPress={handleContinue}
+          testID="landing-continue-button"
+        />
+      </View>
     </SafeScreenWrapper>
   );
 }
@@ -162,12 +163,17 @@ function PlanCard({
 }
 
 const styles = StyleSheet.create({
+  container: {
+    flex: 1,
+    position: 'relative',
+  },
   scroll: {
     flex: 1,
   },
   scrollContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingVertical: Spacing.md,
+    paddingBottom: 110,
     gap: Spacing.xl,
   },
   subtitleBlock: {
@@ -284,9 +290,5 @@ const styles = StyleSheet.create({
     ...Typography.body,
     color: Colors.ink,
     fontSize: FontSize.body,
-  },
-  ctaContainer: {
-    marginTop: Spacing.sm,
-    paddingBottom: Spacing.xxl,
   },
 });

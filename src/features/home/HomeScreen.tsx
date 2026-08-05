@@ -153,6 +153,7 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     gap: Spacing.lg,
+    paddingTop: Spacing.sm,
   },
   searchContainer: {
     paddingHorizontal: Layout.screenPaddingHWide,
@@ -164,7 +165,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
   },
   sectionGap: {
-    height: Spacing.xs,
+    height: Spacing.sm,
   },
   bottomPadding: {
     height: Spacing.xxl,

@@ -7,7 +7,7 @@ import {
   SafeScreenWrapper,
 } from '@shared/components';
 import { DEFAULT_TIME_SLOTS, getNextFiveDays } from '@shared/utils/dateTime';
-import { Colors, FontSize, Layout, Spacing, Typography } from '@theme';
+import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
@@ -89,6 +89,28 @@ export function ConsultationDetailsScreen() {
             </Text>
           </View>
 
+          {/* Selection summary — helps user see current choices at a glance */}
+          <View style={styles.summaryCard}>
+            <Text style={styles.summaryLabel}>Your Selection</Text>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryKey}>Mode</Text>
+              <Text style={styles.summaryVal}>{storeState.consultationType} Call</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryKey}>Date</Text>
+              <Text style={styles.summaryVal}>{selectedDate}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryKey}>Time</Text>
+              <Text style={styles.summaryVal}>{selectedTime}</Text>
+            </View>
+            <View style={styles.summaryRow}>
+              <Text style={styles.summaryKey}>Language</Text>
+              <Text style={styles.summaryVal}>{storeState.consultationLanguage || 'English'}</Text>
+            </View>
+          </View>
+
+          {/* Consultation Mode — full-width chips for consistent tap targets */}
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Consultation Mode</Text>
             <View style={styles.modeGrid}>
@@ -188,6 +210,37 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     lineHeight: 20,
   },
+  summaryCard: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+    ...Shadows.card,
+  },
+  summaryLabel: {
+    fontSize: FontSize.label,
+    fontWeight: FontWeight.semibold,
+    color: Colors.textSecondary,
+    textTransform: 'uppercase',
+    marginBottom: Spacing.xs / 2,
+  },
+  summaryRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingVertical: 3,
+  },
+  summaryKey: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.textSecondary,
+  },
+  summaryVal: {
+    fontSize: FontSize.bodySmall,
+    fontWeight: FontWeight.semibold,
+    color: Colors.ink,
+  },
   sectionBlock: {
     gap: Spacing.xs,
   },
@@ -199,7 +252,7 @@ const styles = StyleSheet.create({
   },
   modeGrid: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   chipRow: {
     flexDirection: 'row',
