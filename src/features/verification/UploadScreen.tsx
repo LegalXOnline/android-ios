@@ -1,3 +1,4 @@
+import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
@@ -5,11 +6,12 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
+  Badge,
   Chip,
   SafeScreenWrapper,
   SecondaryButton,
 } from '@shared/components';
-import { Colors, FontSize, FontWeight, Layout, Radii, Spacing, Typography } from '@theme';
+import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
@@ -17,6 +19,13 @@ import {
   useVerificationStore,
   VERIFICATION_PLANS,
 } from './verification.store';
+
+interface SelectedFile {
+  name: string;
+  size: string;
+  ext: string;
+  uri: string;
+}
 
 const DOCUMENT_TYPES = [
   'Property Agreement',
@@ -36,26 +45,63 @@ export function UploadScreen() {
   const [selectedLanguage, setSelectedLanguage] = useState(
     storeState.language || 'English'
   );
-  const [fileAttached, setFileAttached] = useState(true);
+
+  const [file, setFile] = useState<SelectedFile | null>({
+    name: 'Property_Sale_Deed_Draft.pdf',
+    size: '2.4 MB',
+    ext: 'PDF',
+    uri: '',
+  });
+
+  const [errorMsg, setErrorMsg] = useState('');
 
   const isReviewConsultation = storeState.selectedPlan === 'review_consultation';
   const activePlan = isReviewConsultation
     ? VERIFICATION_PLANS.REVIEW_CONSULTATION
     : VERIFICATION_PLANS.REVIEW_ONLY;
 
-  const handleFileSelect = () => {
-    setFileAttached(true);
-    setStoreState({
-      documentType: selectedType,
-      language: selectedLanguage,
-    });
+  const handlePickFile = async () => {
+    try {
+      const res = await DocumentPicker.getDocumentAsync({
+        type: [
+          'application/pdf',
+          'application/msword',
+          'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+          'image/jpeg',
+          'image/png',
+        ],
+        copyToCacheDirectory: true,
+      });
+
+      if (!res.canceled && res.assets && res.assets.length > 0) {
+        const asset = res.assets[0];
+        const ext = asset.name.split('.').pop()?.toUpperCase() || 'FILE';
+        const sizeMb = asset.size ? (asset.size / (1024 * 1024)).toFixed(1) + ' MB' : '1.2 MB';
+
+        setFile({
+          name: asset.name,
+          size: sizeMb,
+          ext,
+          uri: asset.uri,
+        });
+        setErrorMsg('');
+      }
+    } catch {
+      setErrorMsg('Failed to open device file picker.');
+    }
   };
 
   const handleRemoveFile = () => {
-    setFileAttached(false);
+    setFile(null);
   };
 
   const handleNext = () => {
+    if (!file) {
+      setErrorMsg('Please select a document file before proceeding.');
+      return;
+    }
+
+    setErrorMsg('');
     setStoreState({
       documentType: selectedType,
       language: selectedLanguage,
@@ -73,7 +119,7 @@ export function UploadScreen() {
         item_title: `Verification (${activePlan.title})`,
         package_name: activePlan.title,
         price,
-        uploaded_file_name: 'Property_Sale_Deed_Draft.pdf',
+        uploaded_file_name: file.name,
         discount_amount: 0,
         tax_amount: Math.round(price * 0.18),
         total_amount: Math.round(price * 1.18),
@@ -108,30 +154,40 @@ export function UploadScreen() {
           </View>
 
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>Upload Area</Text>
-            <View style={styles.dropZone}>
-              <View style={styles.cloudIconCircle}>
-                <SymbolView
-                  name={{ ios: 'square.and.arrow.up', android: 'cloud_upload', web: 'cloud_upload' }}
-                  size={36}
-                  tintColor={Colors.primary}
-                />
-              </View>
+            <Text style={styles.sectionTitle}>Upload Document File</Text>
 
-              <Text style={styles.dropTitle}>Select a PDF or DOCX file to upload</Text>
-              <Text style={styles.dropSub}>Supported formats: PDF, DOCX, TXT (Max size: 25MB)</Text>
-
-              {fileAttached ? (
-                <View style={styles.fileCard}>
-                  <SymbolView
-                    name={{ ios: 'doc.fill', android: 'insert_drive_file', web: 'insert_drive_file' }}
-                    size={24}
-                    tintColor={Colors.primary}
-                  />
-                  <View style={styles.fileMeta}>
-                    <Text style={styles.fileName}>Property_Sale_Deed_Draft.pdf</Text>
-                    <Text style={styles.fileSize}>2.4 MB</Text>
+            {file ? (
+              <View style={styles.previewCard}>
+                <View style={styles.previewHeaderRow}>
+                  <View style={styles.iconBox}>
+                    <SymbolView
+                      name={
+                        file.ext === 'PNG' || file.ext === 'JPG' || file.ext === 'JPEG'
+                          ? { ios: 'photo.fill', android: 'image', web: 'image' }
+                          : { ios: 'doc.fill', android: 'insert_drive_file', web: 'insert_drive_file' }
+                      }
+                      size={24}
+                      tintColor={Colors.primary}
+                    />
                   </View>
+
+                  <View style={styles.fileMeta}>
+                    <Text style={styles.fileName}>{file.name}</Text>
+                    <Text style={styles.fileSizeText}>
+                      Size: {file.size} • Format: {file.ext}
+                    </Text>
+                  </View>
+
+                  <Badge label="Ready" variant="success" />
+                </View>
+
+                <View style={styles.previewActionsRow}>
+                  <SecondaryButton
+                    label="Replace File"
+                    onPress={handlePickFile}
+                    style={styles.actionBtn}
+                    testID="replace-file-button"
+                  />
                   <Pressable onPress={handleRemoveFile} style={styles.removeBtn}>
                     <SymbolView
                       name={{ ios: 'trash.fill', android: 'delete', web: 'delete' }}
@@ -140,15 +196,30 @@ export function UploadScreen() {
                     />
                   </Pressable>
                 </View>
-              ) : (
+              </View>
+            ) : (
+              <View style={styles.dropZone}>
+                <View style={styles.cloudIconCircle}>
+                  <SymbolView
+                    name={{ ios: 'square.and.arrow.up', android: 'cloud_upload', web: 'cloud_upload' }}
+                    size={36}
+                    tintColor={Colors.primary}
+                  />
+                </View>
+
+                <Text style={styles.dropTitle}>Select a PDF, DOCX, or Image file to upload</Text>
+                <Text style={styles.dropSub}>Supported formats: PDF, DOC, DOCX, JPG, PNG (Max: 25MB)</Text>
+
                 <SecondaryButton
                   label="Browse Files"
-                  onPress={handleFileSelect}
+                  onPress={handlePickFile}
                   style={styles.browseBtn}
                   testID="browse-files-button"
                 />
-              )}
-            </View>
+              </View>
+            )}
+
+            {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
           </View>
 
           <View style={styles.sectionBlock}>
@@ -267,17 +338,29 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
     minWidth: 140,
   },
-  fileCard: {
+  previewCard: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    gap: Spacing.md,
+    ...Shadows.card,
+  },
+  previewHeaderRow: {
     flexDirection: 'row',
     alignItems: 'center',
+    gap: Spacing.md,
+  },
+  iconBox: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
-    borderRadius: Radii.card,
-    padding: Spacing.sm,
-    gap: Spacing.sm,
-    width: '100%',
-    marginTop: Spacing.xs,
+    alignItems: 'center',
+    justifyContent: 'center',
   },
   fileMeta: {
     flex: 1,
@@ -288,12 +371,30 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
     color: Colors.ink,
   },
-  fileSize: {
-    fontSize: 10,
+  fileSizeText: {
+    fontSize: 11,
     color: Colors.textSecondary,
+  },
+  previewActionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  actionBtn: {
+    flex: 1,
+    marginRight: Spacing.md,
   },
   removeBtn: {
     padding: Spacing.xs,
+  },
+  errorText: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.danger,
+    fontWeight: FontWeight.medium,
+    marginTop: 4,
   },
   chipGrid: {
     flexDirection: 'row',

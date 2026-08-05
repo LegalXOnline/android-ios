@@ -9,6 +9,7 @@ import {
   SafeScreenWrapper,
   SecondaryButton,
 } from '@shared/components';
+import { validateEmail, validatePhone } from '@shared/utils/validation';
 import { Colors, FontSize, FontWeight, Layout, Spacing, Typography } from '@theme';
 
 export function LoginScreen() {
@@ -18,10 +19,18 @@ export function LoginScreen() {
   const [errorMsg, setErrorMsg] = useState('');
 
   const handleLogin = () => {
-    if (!identifier.trim()) {
+    const trimmed = identifier.trim();
+    if (!trimmed) {
       setErrorMsg('Please enter your registered phone number or email.');
       return;
     }
+
+    const isValid = validateEmail(trimmed) || validatePhone(trimmed);
+    if (!isValid) {
+      setErrorMsg('Please enter a valid 10-digit mobile number or email address.');
+      return;
+    }
+
     setErrorMsg('');
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push('/(auth)/otp' as any);
@@ -62,7 +71,10 @@ export function LoginScreen() {
           <AppTextInput
             label="Phone Number or Email"
             value={identifier}
-            onChangeText={setIdentifier}
+            onChangeText={(text) => {
+              setIdentifier(text);
+              if (errorMsg) setErrorMsg('');
+            }}
             placeholder="e.g. +91 98765 43210 or user@example.com"
             keyboardType="email-address"
             autoCapitalize="none"

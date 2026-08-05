@@ -1,15 +1,3 @@
-/**
- * LawyerListingScreen — SCR-07
- *
- * Professional marketplace listing for enrolled advocates.
- * Features:
- *   - App Header
- *   - Search Bar (live text filter)
- *   - Practice Area Filter Chips (Horizontal Scroll: All, Civil, Criminal, Corporate, Family, Property, Tax)
- *   - FlatList of LawyerCard items with favorite toggles
- *   - Empty state handling
- *   - Navigation to Lawyer Profile (/lawyer/[id])
- */
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
 import { FlatList, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
@@ -32,16 +20,17 @@ import {
   type LawyerDetailPayload,
 } from './lawyer.placeholder';
 
+type LawyerSort = 'rating' | 'experience' | 'price_low' | 'price_high';
+
 export function LawyerListingScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<LawyerCategory>('All');
+  const [sortOption, setSortOption] = useState<LawyerSort>('rating');
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
 
-  // Filter lawyers by search query and practice area category
   const filteredLawyers = useMemo(() => {
-    return PLACEHOLDER_LAWYERS_FULL.filter((lawyer) => {
-      // Category filter
+    let list = PLACEHOLDER_LAWYERS_FULL.filter((lawyer) => {
       if (selectedCategory !== 'All') {
         const matchesCategory = lawyer.practice_areas.some(
           (area) => area.toLowerCase() === selectedCategory.toLowerCase()
@@ -49,19 +38,32 @@ export function LawyerListingScreen() {
         if (!matchesCategory) return false;
       }
 
-      // Search query filter
       if (searchQuery.trim().length > 0) {
         const q = searchQuery.toLowerCase();
         const matchesName = lawyer.name.toLowerCase().includes(q);
         const matchesArea = lawyer.practice_areas.some((a) => a.toLowerCase().includes(q));
         const matchesTag = lawyer.expertise_tags.some((t) => t.toLowerCase().includes(q));
         const matchesLang = lawyer.languages.some((l) => l.toLowerCase().includes(q));
-        return matchesName || matchesArea || matchesTag || matchesLang;
+        const matchesCourt = lawyer.courts.some((c) => c.toLowerCase().includes(q));
+        const matchesLoc = lawyer.location.toLowerCase().includes(q);
+        return matchesName || matchesArea || matchesTag || matchesLang || matchesCourt || matchesLoc;
       }
 
       return true;
     });
-  }, [searchQuery, selectedCategory]);
+
+    if (sortOption === 'rating') {
+      list = [...list].sort((a, b) => b.rating_avg - a.rating_avg);
+    } else if (sortOption === 'experience') {
+      list = [...list].sort((a, b) => b.experience_years - a.experience_years);
+    } else if (sortOption === 'price_low') {
+      list = [...list].sort((a, b) => a.fee_chat - b.fee_chat);
+    } else if (sortOption === 'price_high') {
+      list = [...list].sort((a, b) => b.fee_video - a.fee_video);
+    }
+
+    return list;
+  }, [searchQuery, selectedCategory, sortOption]);
 
   const handleLawyerPress = useCallback(
     (lawyerId: string) => {
@@ -85,16 +87,14 @@ export function LawyerListingScreen() {
 
   const renderHeader = () => (
     <View style={styles.headerContent}>
-      {/* Search Bar */}
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search advocate by name, practice area, or language..."
+        placeholder="Search advocate by name, practice area, language, or court..."
         onClear={() => setSearchQuery('')}
         testID="lawyer-search-bar"
       />
 
-      {/* Practice Area Filter Chips */}
       <ScrollView
         horizontal
         showsHorizontalScrollIndicator={false}
@@ -109,6 +109,33 @@ export function LawyerListingScreen() {
             testID={`category-chip-${cat}`}
           />
         ))}
+      </ScrollView>
+
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryRow}
+      >
+        <Chip
+          label="Highest Rating"
+          selected={sortOption === 'rating'}
+          onPress={() => setSortOption('rating')}
+        />
+        <Chip
+          label="Most Experience"
+          selected={sortOption === 'experience'}
+          onPress={() => setSortOption('experience')}
+        />
+        <Chip
+          label="Price: Low → High"
+          selected={sortOption === 'price_low'}
+          onPress={() => setSortOption('price_low')}
+        />
+        <Chip
+          label="Price: High → Low"
+          selected={sortOption === 'price_high'}
+          onPress={() => setSortOption('price_high')}
+        />
       </ScrollView>
     </View>
   );
@@ -145,6 +172,7 @@ export function LawyerListingScreen() {
             onActionPress={() => {
               setSearchQuery('');
               setSelectedCategory('All');
+              setSortOption('rating');
             }}
           />
         }

@@ -8,6 +8,7 @@ import {
   PrimaryButton,
   SafeScreenWrapper,
 } from '@shared/components';
+import { validateOtp } from '@shared/utils/validation';
 import { Colors, FontSize, FontWeight, Layout, Spacing, Typography } from '@theme';
 
 export function OtpVerificationScreen() {
@@ -17,8 +18,8 @@ export function OtpVerificationScreen() {
   const [resendTimer, setResendTimer] = useState(30);
 
   const handleVerify = () => {
-    if (otpCode.length < 4) {
-      setErrorMsg('Please enter the valid 6-digit verification code.');
+    if (!validateOtp(otpCode)) {
+      setErrorMsg('Please enter a valid 4-digit or 6-digit numeric OTP code.');
       return;
     }
     setErrorMsg('');
@@ -43,15 +44,18 @@ export function OtpVerificationScreen() {
         <View style={styles.headerBlock}>
           <Text style={styles.title}>Enter Verification Code</Text>
           <Text style={styles.subtitle}>
-            We have sent a 6-digit OTP to your registered phone number / email address.
+            We have sent a verification OTP to your registered phone number / email address.
           </Text>
         </View>
 
         <View style={styles.formBlock}>
           <AppTextInput
-            label="6-Digit OTP Code"
+            label="Verification OTP Code"
             value={otpCode}
-            onChangeText={setOtpCode}
+            onChangeText={(text) => {
+              setOtpCode(text);
+              if (errorMsg) setErrorMsg('');
+            }}
             placeholder="• • • • • •"
             keyboardType="number-pad"
             maxLength={6}

@@ -21,11 +21,14 @@ import {
   type KnowledgeCategory,
 } from './knowledge.placeholder';
 
+type ArticleSort = 'newest' | 'popular' | 'read_time';
+
 export function KnowledgeHomeScreen() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<KnowledgeCategory>('All');
   const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
+  const [sortOption, setSortOption] = useState<ArticleSort>('newest');
   const [articles, setArticles] = useState<ArticlePayload[]>(PLACEHOLDER_ARTICLES);
 
   const featuredArticle = useMemo(
@@ -39,7 +42,7 @@ export function KnowledgeHomeScreen() {
   );
 
   const filteredArticles = useMemo(() => {
-    return articles.filter((art) => {
+    let list = articles.filter((art) => {
       if (showBookmarksOnly && !art.isBookmarked) return false;
 
       if (selectedCategory !== 'All') {
@@ -59,7 +62,18 @@ export function KnowledgeHomeScreen() {
 
       return true;
     });
-  }, [articles, searchQuery, selectedCategory, showBookmarksOnly]);
+
+    if (sortOption === 'newest') {
+      list = [...list].sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
+    } else if (sortOption === 'popular') {
+      list = [...list].sort((a, b) => (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0));
+    } else if (sortOption === 'read_time') {
+      const getMin = (r: string) => parseInt(r) || 5;
+      list = [...list].sort((a, b) => getMin(a.readingTime) - getMin(b.readingTime));
+    }
+
+    return list;
+  }, [articles, searchQuery, selectedCategory, showBookmarksOnly, sortOption]);
 
   const handleArticlePress = (id: string) => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -107,6 +121,28 @@ export function KnowledgeHomeScreen() {
         </ScrollView>
       </View>
 
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.categoryRow}
+      >
+        <Chip
+          label="Newest"
+          selected={sortOption === 'newest'}
+          onPress={() => setSortOption('newest')}
+        />
+        <Chip
+          label="Most Popular"
+          selected={sortOption === 'popular'}
+          onPress={() => setSortOption('popular')}
+        />
+        <Chip
+          label="Reading Time (Shortest)"
+          selected={sortOption === 'read_time'}
+          onPress={() => setSortOption('read_time')}
+        />
+      </ScrollView>
+
       {!searchQuery && !showBookmarksOnly && selectedCategory === 'All' && featuredArticle && (
         <View style={styles.sectionBlock}>
           <FeaturedArticleCard
@@ -136,7 +172,7 @@ export function KnowledgeHomeScreen() {
         title={
           showBookmarksOnly
             ? `Bookmarked Articles (${filteredArticles.length})`
-            : `Recent Articles (${filteredArticles.length})`
+            : `Articles (${filteredArticles.length})`
         }
         style={styles.sectionHeaderOverride}
       />
@@ -175,6 +211,7 @@ export function KnowledgeHomeScreen() {
               setSearchQuery('');
               setSelectedCategory('All');
               setShowBookmarksOnly(false);
+              setSortOption('newest');
             }}
           />
         }
