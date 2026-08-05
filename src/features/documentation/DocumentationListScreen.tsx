@@ -25,6 +25,7 @@ import { Layout, Spacing } from '@theme';
 
 import { DOCUMENT_SERVICES, type ServiceDetailPayload } from './documentation.placeholder';
 import { FeaturedVideoCard } from './components/FeaturedVideoCard';
+import { VerificationCard } from './components/VerificationCard';
 
 export function DocumentationListScreen() {
   const router = useRouter();
@@ -43,6 +44,11 @@ export function DocumentationListScreen() {
     router.push(`/(tabs)/documentation/${serviceId}` as any);
   };
 
+  const handleVerificationPress = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/verification' as any);
+  };
+
   const renderHeader = () => (
     <View style={styles.headerContent}>
       {/* Search bar UI */}
@@ -56,6 +62,10 @@ export function DocumentationListScreen() {
       {/* Featured Video Card */}
       <FeaturedVideoCard />
 
+      {/* Standalone Full-Width Verification Card */}
+      <VerificationCard onPress={handleVerificationPress} />
+
+      {/* All Legal Services Section */}
       <SectionHeader
         title={`All Legal Services (${filteredServices.length})`}
         style={styles.sectionHeader}
