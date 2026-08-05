@@ -134,7 +134,7 @@ export function ServiceDetailScreen() {
 
         {/* 7. What's Included */}
         <View style={styles.sectionBlock}>
-          <Text style={styles.sectionTitle}>What's Included</Text>
+          <Text style={styles.sectionTitle}>{"What's Included"}</Text>
           <View style={styles.cardBox}>
             {service.whatsIncluded.map((item, idx) => (
               <View key={`included-${idx}`} style={styles.bulletRow}>
@@ -234,13 +234,13 @@ const styles = StyleSheet.create({
   },
   bulletIndex: {
     fontSize: FontSize.bodySmall,
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.semibold,
     color: Colors.primary,
     minWidth: 18,
   },
   bulletPoint: {
     fontSize: FontSize.body,
-    fontWeight: FontWeight.bold,
+    fontWeight: FontWeight.semibold,
     color: Colors.primary,
   },
   bulletText: {

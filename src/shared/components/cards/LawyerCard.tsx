@@ -65,117 +65,119 @@ export const LawyerCard = memo(function LawyerCard({
     .slice(0, 2);
 
   return (
-    <Pressable
-      onPress={onPress}
-      testID={testID}
-      accessibilityRole="button"
-      accessibilityLabel={`${lawyer.name}. ${lawyer.experience_years} years experience. Rating ${lawyer.rating_avg}`}
-      style={({ pressed }) => [
-        styles.card,
-        pressed && styles.pressed,
-        style,
-      ]}
-    >
-      {/* ─── Header row ─── */}
-      <View style={styles.headerRow}>
-        <Avatar
-          uri={lawyer.photo_url}
-          initials={initials}
-          size="lg"
-          accessibilityLabel={`${lawyer.name} photo`}
-        />
+    <View style={[styles.card, style]}>
+      {/* ─── Main card body pressable ─── */}
+      <Pressable
+        onPress={onPress}
+        testID={testID}
+        accessibilityRole="button"
+        accessibilityLabel={`${lawyer.name}. ${lawyer.experience_years} years experience. Rating ${lawyer.rating_avg}`}
+        style={({ pressed }) => [
+          styles.cardBody,
+          pressed && styles.pressed,
+        ]}
+      >
+        {/* ─── Header row ─── */}
+        <View style={styles.headerRow}>
+          <Avatar
+            uri={lawyer.photo_url}
+            initials={initials}
+            size="lg"
+            accessibilityLabel={`${lawyer.name} photo`}
+          />
 
-        <View style={styles.headerInfo}>
-          {/* Name */}
-          <Text style={styles.name} numberOfLines={1}>
-            {lawyer.name}
-          </Text>
-
-          {/* Rating row */}
-          <View style={styles.ratingRow}>
-            <SymbolView
-              name={{ ios: 'star.fill', android: 'star', web: 'star' }}
-              size={13}
-              tintColor={Colors.primary}
-            />
-            <Text style={styles.ratingText}>
-              {lawyer.rating_avg.toFixed(1)}
+          <View style={styles.headerInfo}>
+            {/* Name */}
+            <Text style={styles.name} numberOfLines={1}>
+              {lawyer.name}
             </Text>
-            <Text style={styles.reviewCount}>
-              ({lawyer.review_count} reviews)
+
+            {/* Rating row */}
+            <View style={styles.ratingRow}>
+              <SymbolView
+                name={{ ios: 'star.fill', android: 'star', web: 'star' }}
+                size={13}
+                tintColor={Colors.primary}
+              />
+              <Text style={styles.ratingText}>
+                {lawyer.rating_avg.toFixed(1)}
+              </Text>
+              <Text style={styles.reviewCount}>
+                ({lawyer.review_count} reviews)
+              </Text>
+            </View>
+
+            {/* Experience */}
+            <Text style={styles.experience}>
+              {lawyer.experience_years} yrs experience
             </Text>
           </View>
-
-          {/* Experience */}
-          <Text style={styles.experience}>
-            {lawyer.experience_years} yrs experience
-          </Text>
         </View>
 
-        {/* Favourite button — top-right per 04_Design_System §5.2 */}
-        <Pressable
-          onPress={onFavouritePress}
-          accessibilityRole="button"
-          accessibilityLabel={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
-          accessibilityState={{ selected: isFavourited }}
-          style={({ pressed }) => [styles.favouriteButton, pressed && styles.pressed]}
-          hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-        >
-          <SymbolView
-            name={
-              isFavourited
-                ? { ios: 'heart.fill', android: 'favorite', web: 'favorite' }
-                : { ios: 'heart', android: 'favorite_border', web: 'favorite_border' }
-            }
-            size={22}
-            tintColor={isFavourited ? Colors.danger : Colors.textSecondary}
-          />
-        </Pressable>
-      </View>
+        {/* ─── Tags: Languages ─── */}
+        {lawyer.languages.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tagRow}
+            contentContainerStyle={styles.tagContent}
+          >
+            {lawyer.languages.map((lang) => (
+              <Chip key={lang} label={lang} />
+            ))}
+          </ScrollView>
+        )}
 
-      {/* ─── Tags: Languages ─── */}
-      {lawyer.languages.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tagRow}
-          contentContainerStyle={styles.tagContent}
-        >
-          {lawyer.languages.map((lang) => (
-            <Chip key={lang} label={lang} />
-          ))}
-        </ScrollView>
-      )}
+        {/* ─── Tags: Practice areas ─── */}
+        {lawyer.practice_areas.length > 0 && (
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            style={styles.tagRow}
+            contentContainerStyle={styles.tagContent}
+          >
+            {lawyer.practice_areas.map((area) => (
+              <Chip key={area} label={area} />
+            ))}
+          </ScrollView>
+        )}
 
-      {/* ─── Tags: Practice areas ─── */}
-      {lawyer.practice_areas.length > 0 && (
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          style={styles.tagRow}
-          contentContainerStyle={styles.tagContent}
-        >
-          {lawyer.practice_areas.map((area) => (
-            <Chip key={area} label={area} />
-          ))}
-        </ScrollView>
-      )}
-
-      {/* ─── Mode buttons (presentation only) ─── */}
-      <View style={styles.modeRow}>
-        <ModeButton label="Chat" price={lawyer.fee_chat} />
-        <ModeButton label="Voice" price={lawyer.fee_voice} />
-        <ModeButton label="Video" price={lawyer.fee_video} />
-      </View>
-
-      {/* Availability indicator */}
-      {lawyer.is_available_now && (
-        <View style={styles.availableRow}>
-          <View style={styles.availableDot} />
-          <Text style={styles.availableText}>Available now</Text>
+        {/* ─── Mode buttons (presentation only) ─── */}
+        <View style={styles.modeRow}>
+          <ModeButton label="Chat" price={lawyer.fee_chat} />
+          <ModeButton label="Voice" price={lawyer.fee_voice} />
+          <ModeButton label="Video" price={lawyer.fee_video} />
         </View>
-      )}
-    </Pressable>
+
+        {/* Availability indicator */}
+        {lawyer.is_available_now && (
+          <View style={styles.availableRow}>
+            <View style={styles.availableDot} />
+            <Text style={styles.availableText}>Available now</Text>
+          </View>
+        )}
+      </Pressable>
+
+      {/* ─── Favourite button (sibling Pressable, top-right absolute) ─── */}
+      <Pressable
+        onPress={onFavouritePress}
+        accessibilityRole="button"
+        accessibilityLabel={isFavourited ? 'Remove from favourites' : 'Add to favourites'}
+        accessibilityState={{ selected: isFavourited }}
+        style={({ pressed }) => [styles.favouriteButton, pressed && styles.pressed]}
+        hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
+      >
+        <SymbolView
+          name={
+            isFavourited
+              ? { ios: 'heart.fill', android: 'favorite', web: 'favorite' }
+              : { ios: 'heart', android: 'favorite_border', web: 'favorite_border' }
+          }
+          size={22}
+          tintColor={isFavourited ? Colors.danger : Colors.textSecondary}
+        />
+      </Pressable>
+    </View>
   );
 });
 
@@ -221,13 +223,16 @@ const modeStyles = StyleSheet.create({
 
 const styles = StyleSheet.create({
   card: {
+    position: 'relative',
     backgroundColor: Colors.surfaceAlt,
     borderRadius: Radii.card,
-    padding: Layout.cardPadding,
     borderWidth: 1,
     borderColor: Colors.border,
-    gap: Spacing.md,
     ...Shadows.card,
+  },
+  cardBody: {
+    padding: Layout.cardPadding,
+    gap: Spacing.md,
   },
   pressed: {
     opacity: 0.85,
@@ -240,6 +245,7 @@ const styles = StyleSheet.create({
   headerInfo: {
     flex: 1,
     gap: Spacing.xs,
+    paddingRight: Spacing.xl,
   },
   name: {
     ...Typography.h2,
@@ -264,7 +270,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   favouriteButton: {
-    // Hit area is at least 44×44 via hitSlop
+    position: 'absolute',
+    top: Layout.cardPadding,
+    right: Layout.cardPadding,
+    zIndex: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },

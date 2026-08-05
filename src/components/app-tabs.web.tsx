@@ -25,7 +25,8 @@ export default function AppTabs() {
           <TabTrigger name="home" href={'/(tabs)' as any} asChild>
             <TabButton>Home</TabButton>
           </TabTrigger>
-          <TabTrigger name="documentation" href="/(tabs)/documentation" asChild>
+          {/* eslint-disable-next-line @typescript-eslint/no-explicit-any */}
+          <TabTrigger name="documentation" href={'/(tabs)/documentation' as any} asChild>
             <TabButton>Documentation</TabButton>
           </TabTrigger>
           <TabTrigger name="knowledge-centre" href="/(tabs)/knowledge-centre" asChild>

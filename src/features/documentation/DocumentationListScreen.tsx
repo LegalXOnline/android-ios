@@ -39,6 +39,7 @@ export function DocumentationListScreen() {
   );
 
   const handleServicePress = (serviceId: string) => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push(`/(tabs)/documentation/${serviceId}` as any);
   };
 

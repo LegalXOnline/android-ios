@@ -54,11 +54,13 @@ export function HomeScreen() {
   const handleSearchPress = () => {
     // SCR-02 not built in Phase 3 — routes to documentation tab as stub
     // Phase 4 will replace with router.push('/(tabs)/search') or similar
-    router.push('/(tabs)/documentation');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/(tabs)/documentation' as any);
   };
 
   const handleDocumentationPress = () => {
-    router.push('/(tabs)/documentation');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/(tabs)/documentation' as any);
   };
 
   const handleKnowledgeCentrePress = () => {
@@ -87,7 +89,8 @@ export function HomeScreen() {
   };
 
   const handleDocumentsSeeAll = () => {
-    router.push('/(tabs)/documentation');
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/(tabs)/documentation' as any);
   };
 
   const handleLawyersSeeAll = () => {
