@@ -1,0 +1,249 @@
+import { useRouter } from 'expo-router';
+import { SymbolView } from 'expo-symbols';
+import { useState } from 'react';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+
+import {
+  AppHeader,
+  Badge,
+  Chip,
+  EmptyState,
+  SafeScreenWrapper,
+  SecondaryButton,
+  type BadgeVariant,
+} from '@shared/components';
+import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing } from '@theme';
+
+import {
+  PLACEHOLDER_NOTIFICATIONS,
+  type NotificationCategory,
+  type NotificationPayload,
+} from './profile.placeholder';
+
+export function NotificationsScreen() {
+  const router = useRouter();
+  const [notifications, setNotifications] =
+    useState<NotificationPayload[]>(PLACEHOLDER_NOTIFICATIONS);
+  const [filterTab, setFilterTab] = useState<'All' | 'Unread' | 'Read'>('All');
+
+  const filteredNotifications = notifications.filter((item) => {
+    if (filterTab === 'Unread') return !item.isRead;
+    if (filterTab === 'Read') return item.isRead;
+    return true;
+  });
+
+  const getCategoryBadgeVariant = (cat: NotificationCategory): BadgeVariant => {
+    switch (cat) {
+      case 'Consultation':
+      case 'Document Ready':
+        return 'success';
+      case 'Payment':
+      case 'LX Coins':
+        return 'default';
+      case 'Order Update':
+        return 'warning';
+      default:
+        return 'default';
+    }
+  };
+
+  const handleMarkAsRead = (id: string) => {
+    setNotifications((prev) =>
+      prev.map((n) => (n.id === id ? { ...n, isRead: !n.isRead } : n))
+    );
+  };
+
+  const handleMarkAllRead = () => {
+    setNotifications((prev) => prev.map((n) => ({ ...n, isRead: true })));
+  };
+
+  const handleDeleteNotification = (id: string) => {
+    setNotifications((prev) => prev.filter((n) => n.id !== id));
+  };
+
+  const renderItem = ({ item }: { item: NotificationPayload }) => (
+    <View style={[styles.card, !item.isRead && styles.cardUnread]}>
+      <View style={styles.cardHeader}>
+        <View style={styles.titleRow}>
+          {!item.isRead && <View style={styles.unreadDot} />}
+          <Text style={styles.cardTitle}>{item.title}</Text>
+        </View>
+
+        <Badge
+          label={item.category}
+          variant={getCategoryBadgeVariant(item.category)}
+        />
+      </View>
+
+      <Text style={styles.cardMessage}>{item.message}</Text>
+
+      <View style={styles.cardFooter}>
+        <Text style={styles.timeText}>{item.time}</Text>
+
+        <View style={styles.actionsRow}>
+          <Pressable
+            onPress={() => handleMarkAsRead(item.id)}
+            style={({ pressed }) => [styles.actionBtn, pressed && styles.pressed]}
+          >
+            <Text style={styles.actionText}>
+              {item.isRead ? 'Mark Unread' : 'Mark Read'}
+            </Text>
+          </Pressable>
+
+          <Pressable
+            onPress={() => handleDeleteNotification(item.id)}
+            style={({ pressed }) => [styles.deleteBtn, pressed && styles.pressed]}
+          >
+            <SymbolView
+              name={{ ios: 'trash.fill', android: 'delete', web: 'delete' }}
+              size={16}
+              tintColor={Colors.danger}
+            />
+          </Pressable>
+        </View>
+      </View>
+    </View>
+  );
+
+  return (
+    <SafeScreenWrapper edges={['top', 'left', 'right']}>
+      <AppHeader title="Notification Centre" showBack onBackPress={() => router.back()} />
+
+      <View style={styles.headerBar}>
+        <View style={styles.tabsRow}>
+          {(['All', 'Unread', 'Read'] as const).map((tab) => (
+            <Chip
+              key={tab}
+              label={tab}
+              selected={filterTab === tab}
+              onPress={() => setFilterTab(tab)}
+            />
+          ))}
+        </View>
+
+        {notifications.some((n) => !n.isRead) && (
+          <SecondaryButton
+            label="Mark All Read"
+            onPress={handleMarkAllRead}
+            style={styles.markAllBtn}
+            testID="mark-all-read-button"
+          />
+        )}
+      </View>
+
+      <FlatList
+        data={filteredNotifications}
+        renderItem={renderItem}
+        keyExtractor={(item) => item.id}
+        contentContainerStyle={styles.listContent}
+        ItemSeparatorComponent={() => <View style={styles.separator} />}
+        ListEmptyComponent={
+          <EmptyState
+            title="No Notifications"
+            description="You're all caught up! Updates regarding consultations and documents will appear here."
+            actionLabel="Return to Profile"
+            onActionPress={() => router.back()}
+          />
+        }
+        showsVerticalScrollIndicator={false}
+      />
+    </SafeScreenWrapper>
+  );
+}
+
+const styles = StyleSheet.create({
+  headerBar: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: Layout.screenPaddingHWide,
+    paddingVertical: Spacing.sm,
+  },
+  tabsRow: {
+    flexDirection: 'row',
+    gap: Spacing.xs,
+  },
+  markAllBtn: {
+    paddingVertical: 4,
+    paddingHorizontal: Spacing.xs,
+  },
+  listContent: {
+    paddingHorizontal: Layout.screenPaddingHWide,
+    paddingVertical: Spacing.md,
+    paddingBottom: Spacing.xxl + 20,
+  },
+  card: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    gap: Spacing.xs,
+    ...Shadows.card,
+  },
+  cardUnread: {
+    borderColor: Colors.primary,
+    backgroundColor: '#FEFCF5',
+  },
+  cardHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+  },
+  titleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+  },
+  unreadDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 4,
+    backgroundColor: Colors.primary,
+  },
+  cardTitle: {
+    fontSize: FontSize.body,
+    fontWeight: FontWeight.semibold,
+    color: Colors.ink,
+  },
+  cardMessage: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.textSecondary,
+    lineHeight: 20,
+  },
+  cardFooter: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingTop: Spacing.xs,
+    marginTop: 2,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
+  },
+  timeText: {
+    fontSize: 11,
+    color: Colors.textSecondary,
+  },
+  actionsRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  actionBtn: {
+    paddingVertical: 2,
+  },
+  actionText: {
+    fontSize: 11,
+    fontWeight: FontWeight.semibold,
+    color: Colors.primary,
+  },
+  deleteBtn: {
+    padding: 2,
+  },
+  pressed: {
+    opacity: 0.7,
+  },
+  separator: {
+    height: Spacing.md,
+  },
+});

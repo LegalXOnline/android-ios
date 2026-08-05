@@ -1,7 +1,7 @@
 import { useRouter } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
@@ -23,13 +23,11 @@ interface MenuItem {
   symbol: SymbolViewProps['name'];
   route?: string;
   badge?: string;
-  isSwitch?: boolean;
 }
 
 export function ProfileRootScreen() {
   const router = useRouter();
   const [profile] = useState(PLACEHOLDER_USER_PROFILE);
-  const [notificationsEnabled, setNotificationsEnabled] = useState(true);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
 
   const initials = profile.name
@@ -49,7 +47,7 @@ export function ProfileRootScreen() {
     {
       id: 'consultations',
       title: 'My Consultations',
-      subtitle: 'Past voice, video & chat sessions',
+      subtitle: 'Past & upcoming voice, video & chat sessions',
       symbol: { ios: 'phone.fill', android: 'call', web: 'call' },
       route: '/profile/call-history',
     },
@@ -68,6 +66,13 @@ export function ProfileRootScreen() {
       route: '/profile/saved-articles',
     },
     {
+      id: 'notifications',
+      title: 'Notification Centre',
+      subtitle: 'Session updates and legal reminders',
+      symbol: { ios: 'bell.fill', android: 'notifications', web: 'notifications' },
+      route: '/profile/notifications',
+    },
+    {
       id: 'wallet',
       title: 'Wallet (LX Coins)',
       subtitle: `Balance: ${profile.lxCoinsBalance} Coins`,
@@ -76,16 +81,9 @@ export function ProfileRootScreen() {
       badge: `${profile.lxCoinsBalance} Coins`,
     },
     {
-      id: 'notifications',
-      title: 'Push Notifications',
-      subtitle: 'Session updates and legal reminders',
-      symbol: { ios: 'bell.fill', android: 'notifications', web: 'notifications' },
-      isSwitch: true,
-    },
-    {
       id: 'support',
-      title: 'Support & FAQs',
-      subtitle: 'Contact LegalX helpdesk & platform guidance',
+      title: 'Support & Helpdesk',
+      subtitle: 'Submit tickets & FAQs',
       symbol: { ios: 'questionmark.circle.fill', android: 'help', web: 'help' },
       route: '/profile/support',
     },
@@ -175,51 +173,31 @@ export function ProfileRootScreen() {
               <View key={item.id}>
                 {idx > 0 && <Divider style={styles.menuDivider} />}
 
-                {item.isSwitch ? (
-                  <View style={styles.menuRow}>
-                    <View style={styles.menuIconBox}>
-                      <SymbolView name={item.symbol} size={20} tintColor={Colors.primary} />
-                    </View>
-
-                    <View style={styles.menuTextInfo}>
-                      <Text style={styles.menuTitle}>{item.title}</Text>
-                      {item.subtitle ? <Text style={styles.menuSub}>{item.subtitle}</Text> : null}
-                    </View>
-
-                    <Switch
-                      value={notificationsEnabled}
-                      onValueChange={setNotificationsEnabled}
-                      trackColor={{ false: Colors.border, true: Colors.primary }}
-                      thumbColor={Colors.surface}
-                    />
+                <Pressable
+                  onPress={() => handleMenuPress(item)}
+                  accessibilityRole="button"
+                  accessibilityLabel={item.title}
+                  style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
+                >
+                  <View style={styles.menuIconBox}>
+                    <SymbolView name={item.symbol} size={20} tintColor={Colors.primary} />
                   </View>
-                ) : (
-                  <Pressable
-                    onPress={() => handleMenuPress(item)}
-                    accessibilityRole="button"
-                    accessibilityLabel={item.title}
-                    style={({ pressed }) => [styles.menuRow, pressed && styles.pressed]}
-                  >
-                    <View style={styles.menuIconBox}>
-                      <SymbolView name={item.symbol} size={20} tintColor={Colors.primary} />
-                    </View>
 
-                    <View style={styles.menuTextInfo}>
-                      <Text style={styles.menuTitle}>{item.title}</Text>
-                      {item.subtitle ? <Text style={styles.menuSub}>{item.subtitle}</Text> : null}
-                    </View>
+                  <View style={styles.menuTextInfo}>
+                    <Text style={styles.menuTitle}>{item.title}</Text>
+                    {item.subtitle ? <Text style={styles.menuSub}>{item.subtitle}</Text> : null}
+                  </View>
 
-                    {item.badge ? (
-                      <Badge label={item.badge} variant="default" />
-                    ) : (
-                      <SymbolView
-                        name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
-                        size={18}
-                        tintColor={Colors.textSecondary}
-                      />
-                    )}
-                  </Pressable>
-                )}
+                  {item.badge ? (
+                    <Badge label={item.badge} variant="default" />
+                  ) : (
+                    <SymbolView
+                      name={{ ios: 'chevron.right', android: 'chevron_right', web: 'chevron_right' }}
+                      size={18}
+                      tintColor={Colors.textSecondary}
+                    />
+                  )}
+                </Pressable>
               </View>
             ))}
           </View>

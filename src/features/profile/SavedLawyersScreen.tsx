@@ -16,7 +16,7 @@ import { PLACEHOLDER_LAWYERS_FULL, type LawyerDetailPayload } from '../lawyer/la
 export function SavedLawyersScreen() {
   const router = useRouter();
   const [favouriteLawyers, setFavouriteLawyers] = useState<LawyerDetailPayload[]>(
-    PLACEHOLDER_LAWYERS_FULL.slice(0, 2)
+    PLACEHOLDER_LAWYERS_FULL.slice(0, 3)
   );
 
   const handleLawyerPress = useCallback(
@@ -54,7 +54,7 @@ export function SavedLawyersScreen() {
           <EmptyState
             title="No Saved Lawyers"
             description="You haven't favorited any advocates yet. Tap the heart icon on any advocate profile to save them here."
-            actionLabel="Browse Lawyers"
+            actionLabel="Browse Advocates"
             onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as any)}
           />
         }
