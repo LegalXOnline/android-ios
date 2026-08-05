@@ -6,6 +6,7 @@ import {
   AppHeader,
   Badge,
   Divider,
+  PrimaryButton,
   SafeScreenWrapper,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
@@ -14,6 +15,11 @@ import { PLACEHOLDER_USER_PROFILE } from './profile.placeholder';
 
 export function LxCoinsScreen() {
   const router = useRouter();
+
+  const handleBuyCoins = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/billing/buy-coins' as any);
+  };
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
@@ -36,6 +42,13 @@ export function LxCoinsScreen() {
           <Text style={styles.balanceTitle}>Available Balance</Text>
           <Text style={styles.balanceAmount}>{PLACEHOLDER_USER_PROFILE.lxCoinsBalance} Coins</Text>
           <Text style={styles.balanceSub}>1 LX Coin = ₹1 INR credits towards consultation fees</Text>
+
+          <PrimaryButton
+            label="Buy LX Coins"
+            onPress={handleBuyCoins}
+            style={styles.buyBtn}
+            testID="lx-coins-buy-button"
+          />
         </View>
 
         <View style={styles.infoSection}>
@@ -59,7 +72,7 @@ export function LxCoinsScreen() {
               tintColor={Colors.textSecondary}
             />
             <Text style={styles.infoText}>
-              In V1, LX Coins balance display is view-only. Direct coin purchases and wallet recharges will launch in V2.
+              LX Coins can be used directly during consultation bookings or document verification checkouts.
             </Text>
           </View>
         </View>
@@ -131,6 +144,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
     textAlign: 'center',
     marginTop: 2,
+  },
+  buyBtn: {
+    marginTop: Spacing.md,
+    width: '100%',
   },
   infoSection: {
     gap: Spacing.md,

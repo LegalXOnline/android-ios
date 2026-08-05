@@ -1,50 +1,35 @@
-/**
- * LawyerProfileScreen — SCR-09
- *
- * Spec: 09_Module_Talk_to_Lawyer.md §4
- * Layout:
- *   1. App Header (with back button)
- *   2. Profile Header (Avatar, Name, Title, Location, Bar Registration, Availability Badge)
- *   3. Stat Row (Rating, Experience, Consultations, Cases)
- *   4. Languages (Chips)
- *   5. About Section
- *   6. Expertise Tags (Chips)
- *   7. Education & Credentials
- *   8. Practice Areas & Courts
- *   9. Consultation Options (3 Premium Mode Cards: Chat / Voice / Video with radio state)
- *  10. Sticky Bottom CTA ("Continue") respecting Safe Area insets
- */
 import { useRouter } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import {
   AppHeader,
   Avatar,
   Badge,
   Chip,
-  Divider,
   ErrorState,
-  PrimaryButton,
+  FaqAccordion,
   SafeScreenWrapper,
 } from '@shared/components';
+import { DEFAULT_TIME_SLOTS, getNextFiveDays } from '@shared/utils/dateTime';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 
-import { getLawyerById } from './lawyer.placeholder';
+import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
+import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
+import { getLawyerById, type LawyerDetailPayload } from './lawyer.placeholder';
 
-export type ConsultationMode = 'Chat' | 'Voice' | 'Video';
+type ConsultationMode = 'Chat' | 'Voice' | 'Video';
 
-interface ModeOption {
+interface OptionItem {
   mode: ConsultationMode;
   title: string;
   symbol: SymbolViewProps['name'];
   duration: string;
-  getFee: (lawyer: ReturnType<typeof getLawyerById>) => number;
+  getFee: (lawyer?: LawyerDetailPayload) => number;
 }
 
-const CONSULTATION_OPTIONS: ModeOption[] = [
+const CONSULTATION_OPTIONS: OptionItem[] = [
   {
     mode: 'Chat',
     title: 'Text Chat',
@@ -74,8 +59,14 @@ interface LawyerProfileScreenProps {
 
 export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
   const [selectedMode, setSelectedMode] = useState<ConsultationMode>('Video');
+  const [isBookingStep, setIsBookingStep] = useState(false);
+
+  const dynamicDates = getNextFiveDays();
+  const [selectedDate, setSelectedDate] = useState(dynamicDates[0].val);
+  const [selectedTime, setSelectedTime] = useState(DEFAULT_TIME_SLOTS[0]);
+  const [selectedLanguage, setSelectedLanguage] = useState('English');
+  const [clientNotes, setClientNotes] = useState('');
 
   const lawyer = getLawyerById(lawyerId);
 
@@ -84,8 +75,8 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
       <SafeScreenWrapper edges={['top', 'left', 'right']}>
         <AppHeader title="Lawyer Profile" showBack onBackPress={() => router.back()} />
         <ErrorState
-          title="Lawyer Not Found"
-          description="The requested advocate profile could not be found or is unavailable."
+          title="Lawyer Profile Not Found"
+          description="The advocate profile you requested could not be located."
           onRetry={() => router.back()}
         />
       </SafeScreenWrapper>
@@ -93,6 +84,7 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
   }
 
   const initials = lawyer.name
+    .replace('Adv. ', '')
     .split(' ')
     .map((n) => n[0])
     .join('')
@@ -102,14 +94,49 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
   const currentPrice = activeOption.getFee(lawyer);
 
   const handleContinue = () => {
-    // Navigation per spec: Lawyer Listing -> Lawyer Profile -> Continue -> Consultation Placeholder
+    if (!lawyer.is_available_now && !isBookingStep) {
+      setIsBookingStep(true);
+      return;
+    }
+
+    const existing = getBillingOrder();
+    const dateTimeStr = !lawyer.is_available_now
+      ? `${selectedDate} at ${selectedTime}`
+      : undefined;
+
+    setBillingOrder({
+      order_type: 'consultation',
+      item_id: lawyer.id,
+      item_title: `Consultation with ${lawyer.name}`,
+      lawyer_name: lawyer.name,
+      mode: selectedMode,
+      date_time: dateTimeStr,
+      notes: clientNotes.trim() || undefined,
+      price: currentPrice,
+      discount_amount: 0,
+      tax_amount: Math.round(currentPrice * 0.18),
+      total_amount: Math.round(currentPrice * 1.18),
+      user_name: existing.user_name || 'Prince Kumar',
+      user_email: existing.user_email || 'prince.kumar@example.com',
+      user_phone: existing.user_phone || '+91 98765 43210',
+    });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/(tabs)/talk-to-lawyer' as any);
+    router.push('/billing' as any);
   };
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Lawyer Profile" showBack onBackPress={() => router.back()} />
+      <AppHeader
+        title={isBookingStep ? 'Book Consultation' : 'Lawyer Profile'}
+        showBack
+        onBackPress={() => {
+          if (isBookingStep) {
+            setIsBookingStep(false);
+          } else {
+            router.back();
+          }
+        }}
+      />
 
       <View style={styles.container}>
         <ScrollView
@@ -117,185 +144,233 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
           contentContainerStyle={styles.scrollContent}
           showsVerticalScrollIndicator={false}
         >
-          {/* 1. Profile Header Block */}
           <View style={styles.headerCard}>
             <Avatar
               uri={lawyer.photo_url}
               initials={initials}
               size="xl"
-              accessibilityLabel={`${lawyer.name} profile photo`}
             />
 
             <View style={styles.headerInfo}>
-              <View style={styles.titleBadgeRow}>
-                <Text style={styles.name}>{lawyer.name}</Text>
-                {lawyer.is_available_now && (
-                  <Badge label="Available Today" variant="success" />
-                )}
-              </View>
-
-              <Text style={styles.lawyerTitle}>{lawyer.title}</Text>
-
-              <Text style={styles.regInfo}>
-                {lawyer.location} • Reg No: {lawyer.bar_registration}
-              </Text>
-            </View>
-          </View>
-
-          {/* 2. Stats Grid (4 items) */}
-          <View style={styles.statsGrid}>
-            <View style={styles.statBox}>
-              <View style={styles.statIconRow}>
+              <View style={styles.nameRow}>
+                <Text style={styles.lawyerName}>{lawyer.name}</Text>
                 <SymbolView
-                  name={{ ios: 'star.fill', android: 'star', web: 'star' }}
-                  size={16}
+                  name={{ ios: 'checkmark.seal.fill', android: 'verified', web: 'verified' }}
+                  size={20}
                   tintColor={Colors.primary}
                 />
-                <Text style={styles.statValue}>{lawyer.rating_avg.toFixed(1)}</Text>
               </View>
-              <Text style={styles.statLabel}>{lawyer.review_count} reviews</Text>
+              <Text style={styles.titleSub}>{lawyer.title}</Text>
+              <Text style={styles.barNumber}>Bar Council Reg: {lawyer.bar_registration}</Text>
             </View>
 
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{lawyer.experience_years} Yrs</Text>
-              <Text style={styles.statLabel}>Experience</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{lawyer.consultations_count}+</Text>
-              <Text style={styles.statLabel}>Consultations</Text>
-            </View>
-
-            <View style={styles.statBox}>
-              <Text style={styles.statValue}>{lawyer.cases_count}+</Text>
-              <Text style={styles.statLabel}>Cases Handled</Text>
+            <View style={styles.metaRow}>
+              <Badge label={`★ ${lawyer.rating_avg} (${lawyer.review_count} reviews)`} variant="success" />
+              <Badge label={`${lawyer.experience_years} Years Experience`} variant="default" />
+              {lawyer.is_available_now ? (
+                <Badge label="Available Now" variant="success" />
+              ) : (
+                <Badge label="Offline — Book for Later" variant="warning" />
+              )}
             </View>
           </View>
 
-          <Divider />
+          {isBookingStep || !lawyer.is_available_now ? (
+            <View style={styles.bookingCard}>
+              <Text style={styles.sectionTitle}>Consultation Schedule Details</Text>
 
-          {/* 3. Spoken Languages */}
-          <View style={styles.section}>
+              <View style={styles.sectionBlock}>
+                <Text style={styles.inputLabel}>Select Date</Text>
+                <View style={styles.tagsWrap}>
+                  {dynamicDates.map((d) => (
+                    <Chip
+                      key={d.val}
+                      label={d.label}
+                      selected={selectedDate === d.val}
+                      onPress={() => setSelectedDate(d.val)}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.sectionBlock}>
+                <Text style={styles.inputLabel}>Select Time Slot</Text>
+                <View style={styles.tagsWrap}>
+                  {DEFAULT_TIME_SLOTS.map((t) => (
+                    <Chip
+                      key={t}
+                      label={t}
+                      selected={selectedTime === t}
+                      onPress={() => setSelectedTime(t)}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.sectionBlock}>
+                <Text style={styles.inputLabel}>Consultation Mode</Text>
+                <View style={styles.tagsWrap}>
+                  {CONSULTATION_OPTIONS.map((opt) => (
+                    <Chip
+                      key={opt.mode}
+                      label={opt.title}
+                      selected={selectedMode === opt.mode}
+                      onPress={() => setSelectedMode(opt.mode)}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.sectionBlock}>
+                <Text style={styles.inputLabel}>Preferred Spoken Language</Text>
+                <View style={styles.tagsWrap}>
+                  {lawyer.languages.map((lang) => (
+                    <Chip
+                      key={lang}
+                      label={lang}
+                      selected={selectedLanguage === lang}
+                      onPress={() => setSelectedLanguage(lang)}
+                    />
+                  ))}
+                </View>
+              </View>
+
+              <View style={styles.sectionBlock}>
+                <Text style={styles.inputLabel}>Optional Notes for Advocate</Text>
+                <TextInput
+                  value={clientNotes}
+                  onChangeText={setClientNotes}
+                  placeholder="Briefly describe your legal query or case context..."
+                  placeholderTextColor={Colors.textSecondary}
+                  style={styles.notesInput}
+                  multiline
+                  numberOfLines={3}
+                />
+              </View>
+            </View>
+          ) : (
+            <View style={styles.sectionBlock}>
+              <Text style={styles.sectionTitle}>Select Consultation Mode</Text>
+
+              <View style={styles.modeCardsGrid}>
+                {CONSULTATION_OPTIONS.map((opt) => {
+                  const isSelected = selectedMode === opt.mode;
+                  const fee = opt.getFee(lawyer);
+
+                  return (
+                    <Pressable
+                      key={opt.mode}
+                      onPress={() => setSelectedMode(opt.mode)}
+                      accessibilityRole="radio"
+                      accessibilityState={{ checked: isSelected }}
+                      style={({ pressed }) => [
+                        styles.modeCard,
+                        isSelected && styles.modeCardSelected,
+                        pressed && styles.pressed,
+                      ]}
+                    >
+                      <View style={styles.modeHeader}>
+                        <View style={styles.iconCircle}>
+                          <SymbolView
+                            name={opt.symbol}
+                            size={22}
+                            tintColor={isSelected ? Colors.primary : Colors.textSecondary}
+                          />
+                        </View>
+                        <View style={styles.modeText}>
+                          <Text style={[styles.modeTitle, isSelected && styles.modeTitleSelected]}>
+                            {opt.title}
+                          </Text>
+                          <Text style={styles.modeDuration}>{opt.duration}</Text>
+                        </View>
+                      </View>
+
+                      <View style={styles.modeFeeRow}>
+                        <Text style={styles.feeVal}>₹{fee}</Text>
+                        <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
+                          {isSelected && <View style={styles.radioDot} />}
+                        </View>
+                      </View>
+                    </Pressable>
+                  );
+                })}
+              </View>
+            </View>
+          )}
+
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>Practice Areas & Expertise</Text>
+            <View style={styles.tagsWrap}>
+              {lawyer.practice_areas.map((tag) => (
+                <Chip key={tag} label={tag} />
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Languages Spoken</Text>
-            <View style={styles.chipRow}>
+            <View style={styles.tagsWrap}>
               {lawyer.languages.map((lang) => (
                 <Chip key={lang} label={lang} />
               ))}
             </View>
           </View>
 
-          {/* 4. About Section */}
-          <View style={styles.section}>
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>Court Practice Locations</Text>
+            {lawyer.courts.map((court, idx) => (
+              <View key={idx} style={styles.courtRow}>
+                <SymbolView
+                  name={{ ios: 'building.columns.fill', android: 'account_balance', web: 'account_balance' }}
+                  size={16}
+                  tintColor={Colors.primary}
+                />
+                <Text style={styles.courtText}>{court}</Text>
+              </View>
+            ))}
+          </View>
+
+          <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>About Advocate</Text>
-            <Text style={styles.aboutText}>{lawyer.about}</Text>
+            <Text style={styles.bioText}>{lawyer.about}</Text>
           </View>
 
-          {/* 5. Expertise Tags */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Key Expertise</Text>
-            <View style={styles.chipRow}>
-              {lawyer.expertise_tags.map((tag) => (
-                <Chip key={tag} label={tag} />
-              ))}
-            </View>
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>Education & Qualifications</Text>
+            {lawyer.education.map((edu, idx) => (
+              <View key={idx} style={styles.eduRow}>
+                <Text style={styles.eduBullet}>•</Text>
+                <Text style={styles.eduText}>{edu}</Text>
+              </View>
+            ))}
           </View>
 
-          <Divider />
-
-          {/* 6. Education & Credentials */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Education & Credentials</Text>
-            <View style={styles.bulletList}>
-              {lawyer.education.map((edu, idx) => (
-                <View key={`edu-${idx}`} style={styles.bulletRow}>
-                  <SymbolView
-                    name={{ ios: 'checkmark.seal.fill', android: 'verified', web: 'verified' }}
-                    size={16}
-                    tintColor={Colors.primary}
-                  />
-                  <Text style={styles.bulletText}>{edu}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          {/* 7. Practice Areas & Courts */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Practice Courts & Tribunals</Text>
-            <View style={styles.bulletList}>
-              {lawyer.courts.map((court, idx) => (
-                <View key={`court-${idx}`} style={styles.bulletRow}>
-                  <SymbolView
-                    name={{ ios: 'building.columns.fill', android: 'account_balance', web: 'account_balance' }}
-                    size={16}
-                    tintColor={Colors.textSecondary}
-                  />
-                  <Text style={styles.bulletText}>{court}</Text>
-                </View>
-              ))}
-            </View>
-          </View>
-
-          <Divider />
-
-          {/* 8. Consultation Options (3 Premium Cards) */}
-          <View style={styles.section}>
-            <Text style={styles.sectionTitle}>Select Consultation Mode</Text>
-            <Text style={styles.sectionSubtitle}>
-              Choose your preferred channel for a 1-on-1 private legal consultation.
-            </Text>
-
-            <View style={styles.modeContainer}>
-              {CONSULTATION_OPTIONS.map((opt) => {
-                const isSelected = selectedMode === opt.mode;
-                const fee = opt.getFee(lawyer);
-
-                return (
-                  <Pressable
-                    key={opt.mode}
-                    onPress={() => setSelectedMode(opt.mode)}
-                    accessibilityRole="radio"
-                    accessibilityState={{ checked: isSelected }}
-                    style={({ pressed }) => [
-                      styles.modeCard,
-                      isSelected && styles.modeCardSelected,
-                      pressed && styles.pressed,
-                    ]}
-                  >
-                    <View style={styles.modeIconBox}>
-                      <SymbolView
-                        name={opt.symbol}
-                        size={22}
-                        tintColor={isSelected ? Colors.primary : Colors.textSecondary}
-                      />
-                    </View>
-
-                    <View style={styles.modeTextInfo}>
-                      <Text style={styles.modeTitle}>{opt.title}</Text>
-                      <Text style={styles.modeDuration}>{opt.duration}</Text>
-                    </View>
-
-                    <View style={styles.modePriceBox}>
-                      <Text style={styles.modePrice}>₹{fee}</Text>
-                      <View style={[styles.radioCircle, isSelected && styles.radioCircleSelected]}>
-                        {isSelected && <View style={styles.radioDot} />}
-                      </View>
-                    </View>
-                  </Pressable>
-                );
-              })}
-            </View>
+          <View style={styles.sectionBlock}>
+            <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
+            <FaqAccordion
+              items={[
+                {
+                  id: 'faq-l1',
+                  question: 'How do I connect with the Advocate after booking?',
+                  answer:
+                    'Your Advocate will connect with you via chat, voice call, or video call at the scheduled session time.',
+                },
+              ]}
+            />
           </View>
         </ScrollView>
 
-        {/* 9. GLOBAL STICKY BOTTOM CTA BAR */}
-        <View style={[styles.stickyCtaBar, { paddingBottom: Math.max(insets.bottom, Spacing.md) }]}>
-          <PrimaryButton
-            label={`Continue (${selectedMode} — ₹${currentPrice})`}
-            onPress={handleContinue}
-            testID="lawyer-profile-continue-button"
-          />
-        </View>
+        <StickyBottomCTA
+          label={
+            lawyer.is_available_now
+              ? `Continue to Billing — ₹${currentPrice}`
+              : isBookingStep
+              ? `Proceed to Billing — ₹${currentPrice}`
+              : `Book Consultation — ₹${currentPrice}`
+          }
+          onPress={handleContinue}
+          testID="lawyer-continue-button"
+        />
       </View>
     </SafeScreenWrapper>
   );
@@ -311,8 +386,8 @@ const styles = StyleSheet.create({
   },
   scrollContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
-    paddingTop: Spacing.md,
-    paddingBottom: 110, // Generous padding so content scrolls above sticky bottom CTA
+    paddingVertical: Spacing.md,
+    paddingBottom: 110,
     gap: Spacing.lg,
   },
   headerCard: {
@@ -322,115 +397,83 @@ const styles = StyleSheet.create({
     borderRadius: Radii.card,
     padding: Spacing.lg,
     alignItems: 'center',
-    textAlign: 'center',
     gap: Spacing.md,
     ...Shadows.card,
   },
   headerInfo: {
     alignItems: 'center',
-    gap: Spacing.xs,
+    gap: Spacing.xs / 2,
   },
-  titleBadgeRow: {
+  nameRow: {
+    flexDirection: 'row',
     alignItems: 'center',
     gap: Spacing.xs,
   },
-  name: {
+  lawyerName: {
     ...Typography.h1,
     fontSize: 22,
     color: Colors.ink,
-    textAlign: 'center',
   },
-  lawyerTitle: {
-    ...Typography.body,
-    fontWeight: FontWeight.medium,
+  titleSub: {
+    fontSize: FontSize.bodySmall,
     color: Colors.primary,
-    textAlign: 'center',
+    fontWeight: FontWeight.semibold,
   },
-  regInfo: {
+  barNumber: {
     fontSize: FontSize.bodySmall,
     color: Colors.textSecondary,
-    textAlign: 'center',
   },
-  statsGrid: {
+  metaRow: {
     flexDirection: 'row',
+    flexWrap: 'wrap',
+    justifyContent: 'center',
+    gap: Spacing.xs,
+    marginTop: Spacing.xs,
+  },
+  bookingCard: {
     backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1.5,
+    borderColor: Colors.primary,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    gap: Spacing.md,
+    ...Shadows.card,
+  },
+  inputLabel: {
+    fontSize: FontSize.bodySmall,
+    fontWeight: FontWeight.semibold,
+    color: Colors.ink,
+    marginBottom: 4,
+  },
+  notesInput: {
+    backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.card,
-    paddingVertical: Spacing.md,
-    paddingHorizontal: Spacing.xs,
-  },
-  statBox: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    gap: 2,
-    borderRightWidth: 1,
-    borderRightColor: Colors.border,
-  },
-  statIconRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-  },
-  statValue: {
-    fontSize: 16,
-    fontWeight: FontWeight.semibold,
+    padding: Spacing.sm,
+    fontSize: FontSize.bodySmall,
     color: Colors.ink,
+    textAlignVertical: 'top',
   },
-  statLabel: {
-    fontSize: 11,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  section: {
-    gap: Spacing.sm,
+  sectionBlock: {
+    gap: Spacing.xs,
   },
   sectionTitle: {
     ...Typography.h2,
     fontSize: 18,
     color: Colors.ink,
+    marginBottom: Spacing.xs / 2,
   },
-  sectionSubtitle: {
-    ...Typography.bodySmall,
-    color: Colors.textSecondary,
-  },
-  chipRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: Spacing.xs,
-  },
-  aboutText: {
-    ...Typography.body,
-    color: Colors.ink,
-    lineHeight: 22,
-  },
-  bulletList: {
+  modeCardsGrid: {
     gap: Spacing.sm,
-  },
-  bulletRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: Spacing.sm,
-  },
-  bulletText: {
-    ...Typography.body,
-    color: Colors.ink,
-    flex: 1,
-  },
-  modeContainer: {
-    gap: Spacing.sm,
-    marginTop: Spacing.xs,
   },
   modeCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
     backgroundColor: Colors.surfaceAlt,
     borderWidth: 1.5,
     borderColor: Colors.border,
     borderRadius: Radii.card,
     padding: Spacing.md,
-    gap: Spacing.md,
+    gap: Spacing.sm,
     ...Shadows.card,
   },
   modeCardSelected: {
@@ -440,17 +483,22 @@ const styles = StyleSheet.create({
   pressed: {
     opacity: 0.85,
   },
-  modeIconBox: {
-    width: 42,
-    height: 42,
-    borderRadius: 21,
+  modeHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.md,
+  },
+  iconCircle: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
     backgroundColor: Colors.surface,
     borderWidth: 1,
     borderColor: Colors.border,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  modeTextInfo: {
+  modeText: {
     flex: 1,
     gap: 2,
   },
@@ -459,24 +507,30 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.semibold,
     color: Colors.ink,
   },
+  modeTitleSelected: {
+    color: Colors.primary,
+  },
   modeDuration: {
     fontSize: FontSize.bodySmall,
     color: Colors.textSecondary,
   },
-  modePriceBox: {
+  modeFeeRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.md,
+    justifyContent: 'space-between',
+    paddingTop: Spacing.xs,
+    borderTopWidth: 1,
+    borderTopColor: Colors.border,
   },
-  modePrice: {
+  feeVal: {
     ...Typography.price,
     fontSize: 18,
-    color: Colors.primary,
+    color: Colors.ink,
   },
   radioCircle: {
-    width: 22,
-    height: 22,
-    borderRadius: 11,
+    width: 20,
+    height: 20,
+    borderRadius: 10,
     borderWidth: 2,
     borderColor: Colors.border,
     alignItems: 'center',
@@ -491,16 +545,40 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: Colors.primary,
   },
-  stickyCtaBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
-    backgroundColor: Colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: Colors.border,
-    paddingHorizontal: Layout.screenPaddingHWide,
-    paddingTop: Spacing.md,
-    ...Shadows.card,
+  tagsWrap: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: Spacing.xs,
+  },
+  courtRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: Spacing.xs,
+    paddingVertical: 2,
+  },
+  courtText: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.ink,
+  },
+  bioText: {
+    ...Typography.body,
+    fontSize: FontSize.bodySmall,
+    color: Colors.textSecondary,
+    lineHeight: 22,
+  },
+  eduRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    paddingVertical: 2,
+  },
+  eduBullet: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.primary,
+    fontWeight: FontWeight.semibold,
+  },
+  eduText: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.ink,
   },
 });

@@ -1,4 +1,4 @@
-export type OrderType = 'document' | 'verification' | 'consultation';
+export type OrderType = 'document' | 'verification' | 'consultation' | 'coins';
 
 export interface BillingOrderPayload {
   order_type: OrderType;
@@ -10,6 +10,7 @@ export interface BillingOrderPayload {
   mode?: string;
   date_time?: string;
   uploaded_file_name?: string;
+  notes?: string;
   user_name: string;
   user_email: string;
   user_phone: string;
@@ -41,9 +42,10 @@ export function getBillingOrder(): BillingOrderPayload {
   return currentBillingOrder;
 }
 
-export function setBillingOrder(payload: Partial<BillingOrderPayload>) {
-  currentBillingOrder = {
-    ...currentBillingOrder,
-    ...payload,
-  };
+export function setBillingOrder(order: Partial<BillingOrderPayload>): void {
+  currentBillingOrder = { ...currentBillingOrder, ...order };
+}
+
+export function resetBillingOrder(): void {
+  currentBillingOrder = { ...DEFAULT_BILLING_ORDER };
 }

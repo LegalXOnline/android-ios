@@ -13,7 +13,7 @@ import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typograp
 import { StickyBottomCTA } from './components/StickyBottomCTA';
 import { getBillingOrder } from './billing.store';
 
-type PaymentMethod = 'UPI' | 'Card' | 'NetBanking' | 'Wallet';
+type PaymentMethod = 'UPI' | 'Card' | 'NetBanking' | 'Wallet' | 'LXCoins';
 
 interface PaymentOption {
   id: PaymentMethod;
@@ -46,6 +46,12 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
     title: 'Digital Wallets',
     subtitle: 'Paytm Wallet, Amazon Pay, Mobikwik',
     symbol: { ios: 'wallet.pass.fill', android: 'account_balance_wallet', web: 'account_balance_wallet' },
+  },
+  {
+    id: 'LXCoins',
+    title: 'LX Coins Balance',
+    subtitle: 'Use promotional & pre-authorized credits',
+    symbol: { ios: 'star.fill', android: 'stars', web: 'stars' },
   },
 ];
 

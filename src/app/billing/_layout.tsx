@@ -7,6 +7,7 @@ export default function BillingLayout() {
       <Stack.Screen name="payment" />
       <Stack.Screen name="success" />
       <Stack.Screen name="failed" />
+      <Stack.Screen name="buy-coins" />
     </Stack>
   );
 }

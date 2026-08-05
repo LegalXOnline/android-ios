@@ -12,36 +12,38 @@ interface ArticleCardProps {
 
 export function ArticleCard({ article, onPress, onBookmarkToggle }: ArticleCardProps) {
   return (
-    <Pressable
-      onPress={onPress}
-      accessibilityRole="button"
-      accessibilityLabel={`Article: ${article.title}`}
-      style={({ pressed }) => [styles.card, pressed && styles.pressed]}
-    >
-      <View style={styles.iconBox}>
-        <SymbolView
-          name={{ ios: 'newspaper.fill', android: 'newspaper', web: 'newspaper' }}
-          size={24}
-          tintColor={Colors.primary}
-        />
-      </View>
-
-      <View style={styles.info}>
-        <View style={styles.topRow}>
-          <Text style={styles.category}>{article.category.toUpperCase()}</Text>
-          <Text style={styles.dot}>•</Text>
-          <Text style={styles.readingTime}>{article.readingTime}</Text>
+    <View style={styles.card}>
+      <Pressable
+        onPress={onPress}
+        accessibilityRole="button"
+        accessibilityLabel={`Article: ${article.title}`}
+        style={({ pressed }) => [styles.cardBody, pressed && styles.pressed]}
+      >
+        <View style={styles.iconBox}>
+          <SymbolView
+            name={{ ios: 'newspaper.fill', android: 'newspaper', web: 'newspaper' }}
+            size={24}
+            tintColor={Colors.primary}
+          />
         </View>
 
-        <Text style={styles.title} numberOfLines={2}>
-          {article.title}
-        </Text>
+        <View style={styles.info}>
+          <View style={styles.topRow}>
+            <Text style={styles.category}>{article.category.toUpperCase()}</Text>
+            <Text style={styles.dot}>•</Text>
+            <Text style={styles.readingTime}>{article.readingTime}</Text>
+          </View>
 
-        <View style={styles.bottomRow}>
-          <Text style={styles.author}>{article.author}</Text>
-          <Text style={styles.date}>{article.publishedDate}</Text>
+          <Text style={styles.title} numberOfLines={2}>
+            {article.title}
+          </Text>
+
+          <View style={styles.bottomRow}>
+            <Text style={styles.author}>{article.author}</Text>
+            <Text style={styles.date}>{article.publishedDate}</Text>
+          </View>
         </View>
-      </View>
+      </Pressable>
 
       {onBookmarkToggle && (
         <Pressable
@@ -62,22 +64,25 @@ export function ArticleCard({ article, onPress, onBookmarkToggle }: ArticleCardP
           />
         </Pressable>
       )}
-    </Pressable>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
     backgroundColor: Colors.surfaceAlt,
     borderWidth: 1,
     borderColor: Colors.border,
     borderRadius: Radii.card,
+    position: 'relative',
+    overflow: 'hidden',
+    ...Shadows.card,
+  },
+  cardBody: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
     padding: Spacing.md,
     gap: Spacing.md,
-    position: 'relative',
-    ...Shadows.card,
   },
   pressed: {
     opacity: 0.85,
@@ -142,5 +147,6 @@ const styles = StyleSheet.create({
     position: 'absolute',
     top: Spacing.md,
     right: Spacing.md,
+    zIndex: 2,
   },
 });

@@ -6,17 +6,41 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import {
   AppHeader,
   Badge,
+  Chip,
   EmptyState,
   SafeScreenWrapper,
+  type BadgeVariant,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 
 import { PLACEHOLDER_ORDERS, type OrderPayload } from './profile.placeholder';
 
+type FilterStatus = 'All' | 'Completed' | 'Pending' | 'Cancelled' | 'Refunded';
+
 export function OrdersScreen() {
   const router = useRouter();
   const [orders] = useState<OrderPayload[]>(PLACEHOLDER_ORDERS);
+  const [selectedFilter, setSelectedFilter] = useState<FilterStatus>('All');
   const [downloadNotice, setDownloadNotice] = useState('');
+
+  const filteredOrders = orders.filter((o) => {
+    if (selectedFilter === 'All') return true;
+    return o.status.toLowerCase() === selectedFilter.toLowerCase();
+  });
+
+  const getBadgeVariant = (status: string): BadgeVariant => {
+    switch (status.toLowerCase()) {
+      case 'completed':
+        return 'success';
+      case 'pending':
+        return 'warning';
+      case 'cancelled':
+      case 'refunded':
+        return 'danger';
+      default:
+        return 'default';
+    }
+  };
 
   const handleDownloadReceipt = (orderId: string) => {
     setDownloadNotice(`Receipt #${orderId} downloaded to device (UI placeholder)`);
@@ -39,7 +63,7 @@ export function OrdersScreen() {
           <Text style={styles.orderDate}>Ordered on {item.date}</Text>
         </View>
 
-        <Badge label={item.status} variant="success" />
+        <Badge label={item.status} variant={getBadgeVariant(item.status)} />
       </View>
 
       <View style={styles.cardFooter}>
@@ -70,16 +94,27 @@ export function OrdersScreen() {
         </View>
       ) : null}
 
+      <View style={styles.filterBar}>
+        {(['All', 'Completed', 'Pending', 'Cancelled', 'Refunded'] as const).map((filter) => (
+          <Chip
+            key={filter}
+            label={filter}
+            selected={selectedFilter === filter}
+            onPress={() => setSelectedFilter(filter)}
+          />
+        ))}
+      </View>
+
       <FlatList
-        data={orders}
+        data={filteredOrders}
         renderItem={renderItem}
         keyExtractor={(item) => item.id}
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
           <EmptyState
-            title="No Orders Yet"
-            description="You haven't ordered any document drafting or verification services yet."
+            title="No Orders Found"
+            description="No document or consultation orders match your selected filter."
             actionLabel="Explore Services"
             onActionPress={() => router.push('/(tabs)/documentation' as any)}
           />
@@ -91,6 +126,13 @@ export function OrdersScreen() {
 }
 
 const styles = StyleSheet.create({
+  filterBar: {
+    flexDirection: 'row',
+    paddingHorizontal: Layout.screenPaddingHWide,
+    paddingVertical: Spacing.sm,
+    gap: Spacing.xs,
+    flexWrap: 'wrap',
+  },
   listContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingVertical: Spacing.md,

@@ -112,6 +112,23 @@ export function BillingScreen() {
                 <Text style={styles.itemPrice}>₹{order.price}</Text>
               </View>
             )}
+
+            {order.order_type === 'coins' && (
+              <View style={styles.summaryItem}>
+                <View style={styles.iconBox}>
+                  <SymbolView
+                    name={{ ios: 'star.fill', android: 'stars', web: 'stars' }}
+                    size={22}
+                    tintColor={Colors.primary}
+                  />
+                </View>
+                <View style={styles.itemInfo}>
+                  <Text style={styles.itemTitle}>{order.item_title}</Text>
+                  <Text style={styles.itemSub}>LX Coins Credits Purchase</Text>
+                </View>
+                <Text style={styles.itemPrice}>₹{order.price}</Text>
+              </View>
+            )}
           </View>
 
           <View style={styles.card}>
@@ -133,7 +150,7 @@ export function BillingScreen() {
                 <Text style={styles.detailVal}>{order.user_email}</Text>
               </View>
 
-              {order.order_type !== 'consultation' && order.user_address && (
+              {order.order_type !== 'consultation' && order.order_type !== 'coins' && order.user_address && (
                 <View style={styles.detailRow}>
                   <Text style={styles.detailLabel}>Address</Text>
                   <Text style={styles.detailVal}>{order.user_address}</Text>
