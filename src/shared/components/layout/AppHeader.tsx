@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     backgroundColor: Colors.surface,
   },
   sideSlot: {
-    width: 40,
+    width: Layout.minTapTarget,
     alignItems: 'flex-start',
     justifyContent: 'center',
   },

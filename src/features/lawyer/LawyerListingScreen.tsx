@@ -221,7 +221,7 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.md,
   },
   categoryRow: {
-    gap: Spacing.xs,
+    gap: Spacing.sm,
     paddingRight: Spacing.md,
   },
   separator: {

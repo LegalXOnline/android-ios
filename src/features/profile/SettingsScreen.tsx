@@ -153,7 +153,7 @@ const styles = StyleSheet.create({
   },
   chipRow: {
     flexDirection: 'row',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   cardList: {
     backgroundColor: Colors.surfaceAlt,

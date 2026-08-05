@@ -164,7 +164,11 @@ export function ArticleDetailScreen({ articleId }: ArticleDetailScreenProps) {
         <Divider />
 
         <View style={styles.bodyBlock}>
-          <Text style={styles.bodyText}>{article.body}</Text>
+          {article.body.split('\n\n').map((paragraph, idx) => (
+            <Text key={`p-${idx}`} style={styles.paragraphText}>
+              {paragraph.trim()}
+            </Text>
+          ))}
         </View>
 
         {article.sources.length > 0 && (
@@ -328,11 +332,11 @@ const styles = StyleSheet.create({
   bodyBlock: {
     gap: Spacing.md,
   },
-  bodyText: {
+  paragraphText: {
     ...Typography.body,
-    fontSize: 16,
+    fontSize: 15,
     color: Colors.ink,
-    lineHeight: 26,
+    lineHeight: 24,
   },
   sourcesBlock: {
     backgroundColor: Colors.surfaceAlt,

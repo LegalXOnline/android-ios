@@ -263,7 +263,7 @@ const styles = StyleSheet.create({
     marginTop: -Spacing.xs,
   },
   categoryRow: {
-    gap: Spacing.xs,
+    gap: Spacing.sm,
     paddingRight: Spacing.md,
   },
   sectionBlock: {

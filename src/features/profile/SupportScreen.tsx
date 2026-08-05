@@ -427,7 +427,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingVertical: Spacing.sm,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   contactBanner: {
     flexDirection: 'row',
@@ -503,7 +503,7 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingVertical: Spacing.xs,
-    gap: Spacing.xs,
+    gap: Spacing.sm,
     flexWrap: 'wrap',
   },
   listContent: {

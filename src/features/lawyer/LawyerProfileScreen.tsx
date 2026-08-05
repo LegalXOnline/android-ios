@@ -339,7 +339,11 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
             <Text style={styles.sectionTitle}>Education & Qualifications</Text>
             {lawyer.education.map((edu, idx) => (
               <View key={idx} style={styles.eduRow}>
-                <Text style={styles.eduBullet}>•</Text>
+                <SymbolView
+                  name={{ ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }}
+                  size={16}
+                  tintColor={Colors.primary}
+                />
                 <Text style={styles.eduText}>{edu}</Text>
               </View>
             ))}
@@ -548,7 +552,7 @@ const styles = StyleSheet.create({
   tagsWrap: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: Spacing.xs,
+    gap: Spacing.sm,
   },
   courtRow: {
     flexDirection: 'row',
@@ -568,17 +572,13 @@ const styles = StyleSheet.create({
   },
   eduRow: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     gap: Spacing.xs,
-    paddingVertical: 2,
-  },
-  eduBullet: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.primary,
-    fontWeight: FontWeight.semibold,
+    paddingVertical: 3,
   },
   eduText: {
     fontSize: FontSize.bodySmall,
     color: Colors.ink,
+    flex: 1,
   },
 });

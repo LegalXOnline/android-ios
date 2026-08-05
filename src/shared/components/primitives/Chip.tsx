@@ -68,6 +68,8 @@ const styles = StyleSheet.create({
     paddingVertical: Spacing.xs,
     borderWidth: 1,
     alignSelf: 'flex-start',
+    minHeight: 36,
+    justifyContent: 'center',
   },
   defaultBg: {
     backgroundColor: Colors.surface,
