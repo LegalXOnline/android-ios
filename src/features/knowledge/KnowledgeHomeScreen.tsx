@@ -4,14 +4,16 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, View, type ListRender
 
 import {
   AppHeader,
-  Chip,
   EmptyState,
   SafeScreenWrapper,
   SearchBar,
   SectionHeader,
   SkeletonList,
+  FilterModal,
 } from '@shared/components';
-import { Colors, Layout, Spacing } from '@theme';
+import { SymbolView } from 'expo-symbols';
+import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
+import { TouchableOpacity, Text } from 'react-native';
 
 import { ArticleCard } from './components/ArticleCard';
 import { FeaturedArticleCard } from './components/FeaturedArticleCard';
@@ -33,6 +35,7 @@ export function KnowledgeHomeScreen() {
   const [articles, setArticles] = useState<ArticlePayload[]>(PLACEHOLDER_ARTICLES);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading] = useState(false);
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -105,53 +108,15 @@ export function KnowledgeHomeScreen() {
         onClear={() => setSearchQuery('')}
       />
 
-      <View style={styles.filterBar}>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.categoryRow}
-        >
-          <Chip
-            label="★ Bookmarks"
-            selected={showBookmarksOnly}
-            onPress={() => setShowBookmarksOnly(!showBookmarksOnly)}
-          />
-
-          {KNOWLEDGE_CATEGORIES.map((cat) => (
-            <Chip
-              key={cat}
-              label={cat}
-              selected={!showBookmarksOnly && selectedCategory === cat}
-              onPress={() => {
-                setShowBookmarksOnly(false);
-                setSelectedCategory(cat);
-              }}
-            />
-          ))}
-        </ScrollView>
+      <View style={styles.filterRow}>
+        <Text style={styles.resultCount}>
+          <Text style={{ fontWeight: '600', color: Colors.ink }}>{filteredArticles.length}</Text> articles
+        </Text>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setIsFilterModalVisible(true)}>
+          <SymbolView name={{ ios: 'line.3.horizontal.decrease', android: 'filter_list', web: 'filter_list' }} size={16} tintColor={Colors.textSecondary as any} />
+          <Text style={styles.filterBtnText}>Filters</Text>
+        </TouchableOpacity>
       </View>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        <Chip
-          label="Newest"
-          selected={sortOption === 'newest'}
-          onPress={() => setSortOption('newest')}
-        />
-        <Chip
-          label="Most Popular"
-          selected={sortOption === 'popular'}
-          onPress={() => setSortOption('popular')}
-        />
-        <Chip
-          label="Reading Time (Shortest)"
-          selected={sortOption === 'read_time'}
-          onPress={() => setSortOption('read_time')}
-        />
-      </ScrollView>
 
       {!searchQuery && !showBookmarksOnly && selectedCategory === 'All' && featuredArticle && (
         <View style={styles.sectionBlock}>
@@ -242,6 +207,36 @@ export function KnowledgeHomeScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <FilterModal
+        visible={isFilterModalVisible}
+        onClose={() => setIsFilterModalVisible(false)}
+        sections={[
+          {
+            type: 'toggle',
+            isToggled: showBookmarksOnly,
+            onToggle: setShowBookmarksOnly,
+            options: [{ label: 'Bookmarked only', value: 'bookmarks' }],
+          },
+          {
+            title: 'SORT BY',
+            type: 'radio',
+            selectedValue: sortOption,
+            onSelect: (val) => setSortOption(val as ArticleSort),
+            options: [
+              { label: 'Newest', value: 'newest' },
+              { label: 'Most Popular', value: 'popular' },
+            ],
+          },
+          {
+            title: 'CATEGORY',
+            type: 'radio',
+            selectedValue: selectedCategory,
+            onSelect: (val) => setSelectedCategory(val as KnowledgeCategory),
+            options: KNOWLEDGE_CATEGORIES.map((cat) => ({ label: cat, value: cat })),
+          },
+        ]}
+      />
     </SafeScreenWrapper>
   );
 }
@@ -259,12 +254,29 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
     paddingVertical: Spacing.md,
   },
-  filterBar: {
+  filterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginTop: -Spacing.xs,
   },
-  categoryRow: {
+  resultCount: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
-    paddingRight: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.sm,
+  },
+  filterBtnText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
   sectionBlock: {
     gap: Spacing.sm,

@@ -11,8 +11,11 @@ import {
   SectionHeader,
   ServiceCard,
   SkeletonList,
+  FilterModal,
 } from '@shared/components';
-import { Colors, Layout, Spacing } from '@theme';
+import { SymbolView } from 'expo-symbols';
+import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
+import { TouchableOpacity, Text } from 'react-native';
 
 import { FeaturedVideoCard } from './components/FeaturedVideoCard';
 import { VerificationCard } from './components/VerificationCard';
@@ -36,6 +39,7 @@ export function DocumentationListScreen() {
   const [sortOption, setSortOption] = useState<DocSort>('default');
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading] = useState(false);
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -93,47 +97,15 @@ export function DocumentationListScreen() {
         onClear={() => setSearchQuery('')}
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        {CATEGORIES.map((cat) => (
-          <Chip
-            key={cat}
-            label={cat === 'All' ? 'All Services' : cat}
-            selected={selectedCategory === cat}
-            onPress={() => setSelectedCategory(cat)}
-          />
-        ))}
-      </ScrollView>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        <Chip
-          label="Sort: Default"
-          selected={sortOption === 'default'}
-          onPress={() => setSortOption('default')}
-        />
-        <Chip
-          label="A → Z"
-          selected={sortOption === 'alphabetical'}
-          onPress={() => setSortOption('alphabetical')}
-        />
-        <Chip
-          label="Price: Low → High"
-          selected={sortOption === 'price_low'}
-          onPress={() => setSortOption('price_low')}
-        />
-        <Chip
-          label="Price: High → Low"
-          selected={sortOption === 'price_high'}
-          onPress={() => setSortOption('price_high')}
-        />
-      </ScrollView>
+      <View style={styles.filterRow}>
+        <Text style={styles.resultCount}>
+          <Text style={{ fontWeight: '600', color: Colors.ink }}>{filteredServices.length}</Text> services
+        </Text>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setIsFilterModalVisible(true)}>
+          <SymbolView name={{ ios: 'line.3.horizontal.decrease', android: 'filter_list', web: 'filter_list' }} size={16} tintColor={Colors.textSecondary as any} />
+          <Text style={styles.filterBtnText}>Filters</Text>
+        </TouchableOpacity>
+      </View>
 
       <FeaturedVideoCard />
       <VerificationCard onPress={handleVerificationPress} />
@@ -194,6 +166,30 @@ export function DocumentationListScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <FilterModal
+        visible={isFilterModalVisible}
+        onClose={() => setIsFilterModalVisible(false)}
+        sections={[
+          {
+            title: 'SORT BY',
+            type: 'radio',
+            selectedValue: sortOption,
+            onSelect: (val) => setSortOption(val as DocSort),
+            options: [
+              { label: 'Default', value: 'default' },
+              { label: 'Price: Low → High', value: 'price_low' },
+            ],
+          },
+          {
+            title: 'CATEGORY',
+            type: 'radio',
+            selectedValue: selectedCategory,
+            onSelect: (val) => setSelectedCategory(val as DocCategory),
+            options: CATEGORIES.map((cat) => ({ label: cat === 'All' ? 'All Services' : cat, value: cat })),
+          },
+        ]}
+      />
     </SafeScreenWrapper>
   );
 }
@@ -211,9 +207,29 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
   },
-  categoryRow: {
+  filterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  resultCount: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
-    paddingRight: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.sm,
+  },
+  filterBtnText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
   sectionHeader: {
     paddingVertical: 0,

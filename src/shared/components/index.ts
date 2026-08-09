@@ -17,7 +17,7 @@ export type { ServiceCardProps, LawyerCardData, LawyerCardProps } from './cards'
 export { FaqAccordion } from './content';
 export type { FaqItem } from './content';
 
-export { SectionHeader, AppHeader, SafeScreenWrapper } from './layout';
+export { SectionHeader, AppHeader, SafeScreenWrapper, FilterModal } from './layout';
 
 export {
   LoadingIndicator,

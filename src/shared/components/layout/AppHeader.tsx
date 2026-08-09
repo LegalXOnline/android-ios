@@ -11,6 +11,7 @@
  * - Renders inside safe area — assumes parent provides SafeScreenWrapper.
  */
 import { SymbolView } from 'expo-symbols';
+import { useRouter } from 'expo-router';
 import { type ReactNode } from 'react';
 import {
   Pressable,
@@ -22,11 +23,13 @@ import {
 } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '@theme';
+import { Avatar } from '../primitives/Avatar';
 
 interface AppHeaderProps {
   title: string;
   showBack?: boolean;
   onBackPress?: () => void;
+  showProfile?: boolean;
   /** Optional element for the right slot (e.g. IconButton for favourite, share) */
   rightElement?: ReactNode;
   style?: StyleProp<ViewStyle>;
@@ -36,9 +39,17 @@ export function AppHeader({
   title,
   showBack = false,
   onBackPress,
+  showProfile = true,
   rightElement,
   style,
 }: AppHeaderProps) {
+  const router = useRouter();
+
+  const handleAvatarPress = () => {
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
+    router.push('/profile' as any);
+  };
+
   return (
     <View style={[styles.container, style]}>
       {/* Left: back button */}
@@ -67,7 +78,23 @@ export function AppHeader({
 
       {/* Right: optional action slot */}
       <View style={[styles.sideSlot, styles.rightSlot]}>
-        {rightElement ?? null}
+        {rightElement ?? (
+          showProfile ? (
+            <Pressable
+              onPress={handleAvatarPress}
+              accessibilityRole="button"
+              accessibilityLabel="Open profile"
+              style={({ pressed }) => pressed && styles.pressed}
+            >
+              <Avatar
+                uri={null}
+                initials="U" // Placeholder initials, will update when auth is connected
+                size="md"
+                accessibilityLabel="Profile"
+              />
+            </Pressable>
+          ) : null
+        )}
       </View>
     </View>
   );

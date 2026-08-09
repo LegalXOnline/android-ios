@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, View, Text, TouchableOpacity, type ListRenderItem } from 'react-native';
 
 import {
   AppHeader,
@@ -10,9 +10,11 @@ import {
   SafeScreenWrapper,
   SearchBar,
   SkeletonList,
+  FilterModal,
   type LawyerCardData,
 } from '@shared/components';
-import { Colors, Layout, Spacing } from '@theme';
+import { SymbolView } from 'expo-symbols';
+import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
 
 import {
   LAWYER_CATEGORIES,
@@ -28,9 +30,11 @@ export function LawyerListingScreen() {
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<LawyerCategory>('All');
   const [sortOption, setSortOption] = useState<LawyerSort>('rating');
+  const [isOnlineOnly, setIsOnlineOnly] = useState(false);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading] = useState(false);
+  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
   const onRefresh = () => {
     setRefreshing(true);
@@ -41,6 +45,8 @@ export function LawyerListingScreen() {
 
   const filteredLawyers = useMemo(() => {
     let list = PLACEHOLDER_LAWYERS_FULL.filter((lawyer) => {
+      if (isOnlineOnly && !lawyer.is_available_now) return false;
+
       if (selectedCategory !== 'All') {
         const matchesCategory = lawyer.practice_areas.some(
           (area) => area.toLowerCase() === selectedCategory.toLowerCase()
@@ -73,7 +79,7 @@ export function LawyerListingScreen() {
     }
 
     return list;
-  }, [searchQuery, selectedCategory, sortOption]);
+  }, [searchQuery, selectedCategory, sortOption, isOnlineOnly]);
 
   const handleLawyerPress = useCallback(
     (lawyerId: string) => {
@@ -105,48 +111,15 @@ export function LawyerListingScreen() {
         testID="lawyer-search-bar"
       />
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        {LAWYER_CATEGORIES.map((cat) => (
-          <Chip
-            key={cat}
-            label={cat}
-            selected={selectedCategory === cat}
-            onPress={() => setSelectedCategory(cat)}
-            testID={`category-chip-${cat}`}
-          />
-        ))}
-      </ScrollView>
-
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        contentContainerStyle={styles.categoryRow}
-      >
-        <Chip
-          label="Highest Rating"
-          selected={sortOption === 'rating'}
-          onPress={() => setSortOption('rating')}
-        />
-        <Chip
-          label="Most Experience"
-          selected={sortOption === 'experience'}
-          onPress={() => setSortOption('experience')}
-        />
-        <Chip
-          label="Price: Low → High"
-          selected={sortOption === 'price_low'}
-          onPress={() => setSortOption('price_low')}
-        />
-        <Chip
-          label="Price: High → Low"
-          selected={sortOption === 'price_high'}
-          onPress={() => setSortOption('price_high')}
-        />
-      </ScrollView>
+      <View style={styles.filterRow}>
+        <Text style={styles.resultCount}>
+          <Text style={{ fontWeight: '600', color: Colors.ink }}>{filteredLawyers.length}</Text> lawyers
+        </Text>
+        <TouchableOpacity style={styles.filterBtn} onPress={() => setIsFilterModalVisible(true)}>
+          <SymbolView name={{ ios: 'line.3.horizontal.decrease', android: 'filter_list', web: 'filter_list' }} size={16} tintColor={Colors.textSecondary as any} />
+          <Text style={styles.filterBtnText}>Filters</Text>
+        </TouchableOpacity>
+      </View>
     </View>
   );
 
@@ -203,6 +176,37 @@ export function LawyerListingScreen() {
           showsVerticalScrollIndicator={false}
         />
       )}
+
+      <FilterModal
+        visible={isFilterModalVisible}
+        onClose={() => setIsFilterModalVisible(false)}
+        sections={[
+          {
+            type: 'toggle',
+            isToggled: isOnlineOnly,
+            onToggle: setIsOnlineOnly,
+            options: [{ label: 'Online now only', value: 'online' }],
+          },
+          {
+            title: 'SORT BY',
+            type: 'radio',
+            selectedValue: sortOption,
+            onSelect: (val) => setSortOption(val as LawyerSort),
+            options: [
+              { label: 'Top Rated', value: 'rating' },
+              { label: 'Most Experienced', value: 'experience' },
+              { label: 'Lowest Fee', value: 'price_low' },
+            ],
+          },
+          {
+            title: 'PRACTICE AREA',
+            type: 'radio',
+            selectedValue: selectedCategory,
+            onSelect: (val) => setSelectedCategory(val as LawyerCategory),
+            options: LAWYER_CATEGORIES.map((cat) => ({ label: cat, value: cat })),
+          },
+        ]}
+      />
     </SafeScreenWrapper>
   );
 }
@@ -220,9 +224,29 @@ const styles = StyleSheet.create({
     gap: Spacing.md,
     paddingVertical: Spacing.md,
   },
-  categoryRow: {
+  filterRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginTop: Spacing.xs,
+  },
+  resultCount: {
+    ...Typography.body,
+    color: Colors.textSecondary,
+  },
+  filterBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
     gap: Spacing.sm,
-    paddingRight: Spacing.md,
+    paddingHorizontal: Spacing.md,
+    paddingVertical: Spacing.sm,
+    borderWidth: 1,
+    borderColor: Colors.border,
+    borderRadius: Radii.sm,
+  },
+  filterBtnText: {
+    ...Typography.body,
+    color: Colors.textSecondary,
   },
   separator: {
     height: Spacing.md,
