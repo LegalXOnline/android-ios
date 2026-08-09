@@ -43,13 +43,14 @@ jobs:
       - name: 🏗️ Generate Android project (Prebuild)
         run: npx expo prebuild --platform android
 
-      - name: 🚀 Build APK
+      - name: 🚀 Build APK (Release)
         working-directory: android
-        run: ./gradlew assembleDebug
+        # assembleRelease packages the JavaScript bundle inside the APK so it doesn't need Metro
+        run: ./gradlew assembleRelease
 
       - name: 📤 Upload APK Artifact
         uses: actions/upload-artifact@v4
         with:
-          name: app-debug-apk
-          path: android/app/build/outputs/apk/debug/app-debug.apk
+          name: app-release-apk
+          path: android/app/build/outputs/apk/release/app-release.apk
           retention-days: 7
