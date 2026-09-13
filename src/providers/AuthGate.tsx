@@ -1,21 +1,26 @@
 import { useRouter, useSegments } from 'expo-router';
 import { useEffect } from 'react';
 import type { ReactNode } from 'react';
-import { ActivityIndicator, StyleSheet, View } from 'react-native';
+import * as SplashScreen from 'expo-splash-screen';
 
 import { useAuth } from './AuthProvider';
-import { M3 } from '@theme';
 
 /**
  * Sends people where their session says they belong.
  *
- * Held until the stored session has been read, so a returning user never sees
- * the login screen flash before being let through.
+ * The navigator is always rendered. Returning a loading view in its place
+ * leaves the router with nothing to match, so the redirect below lands on a
+ * tree that does not exist yet and the app comes up blank. The splash stays up
+ * instead, which is what hides the first frame on device.
  */
 export function AuthGate({ children }: { children: ReactNode }) {
   const { user, loading } = useAuth();
   const segments = useSegments();
   const router = useRouter();
+
+  useEffect(() => {
+    if (!loading) SplashScreen.hideAsync().catch(() => {});
+  }, [loading]);
 
   useEffect(() => {
     if (loading) return;
@@ -25,22 +30,5 @@ export function AuthGate({ children }: { children: ReactNode }) {
     else if (user && inAuth) router.replace('/(tabs)');
   }, [user, loading, segments, router]);
 
-  if (loading) {
-    return (
-      <View style={styles.splash}>
-        <ActivityIndicator color={M3.primary} size="large" />
-      </View>
-    );
-  }
-
   return <>{children}</>;
 }
-
-const styles = StyleSheet.create({
-  splash: {
-    flex: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-    backgroundColor: M3.surface,
-  },
-});

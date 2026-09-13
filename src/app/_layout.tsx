@@ -9,7 +9,6 @@
  */
 import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
-import { useEffect } from 'react';
 
 import { AuthGate } from '@providers/AuthGate';
 import { Providers } from '@providers/index';
@@ -18,13 +17,7 @@ import { Providers } from '@providers/index';
 SplashScreen.preventAutoHideAsync();
 
 export default function RootLayout() {
-  useEffect(() => {
-    // Hide splash once the layout has mounted.
-    // Individual screens are responsible for ensuring their critical data
-    // is loaded before this point if they need to delay the splash further.
-    SplashScreen.hideAsync();
-  }, []);
-
+  // AuthGate hides the splash — it knows when the stored session has been read.
   return (
     <Providers>
       <AuthGate>
