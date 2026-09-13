@@ -56,13 +56,11 @@ jobs:
             grep -q "^${key}=." .env || { echo "::error::${key} is empty. Set it in repository secrets."; exit 1; }
           done
 
-      # Prebuild first: it regenerates expo-env.d.ts, which is gitignored and
-      # carries the reference to expo/types that declares CSS imports.
-      - name: Prebuild Android
-        run: npx expo prebuild --platform android --no-install
-
       - name: Typecheck
         run: npx tsc --noEmit
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
 
       - name: Build release APK
         working-directory: android
