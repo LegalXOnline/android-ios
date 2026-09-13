@@ -4,8 +4,15 @@ import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 
 import { useAuth } from '@providers/AuthProvider';
 import { otpError, requestSignupOtp, type Role, type SignupDraft } from '@services/auth.service';
-import { PrimaryButton, SafeScreenWrapper } from '@shared/components';
-import { M3, Shape, TypeScale } from '@theme';
+
+import {
+  Auth,
+  AuthButton,
+  AuthFont,
+  AuthShell,
+  ErrorBanner,
+  TextLink,
+} from './components';
 
 const LENGTH = 6;
 const RESEND_SECONDS = 30;
@@ -85,121 +92,102 @@ export function OtpVerificationScreen() {
 
   if (!draft) {
     return (
-      <SafeScreenWrapper edges={['top', 'left', 'right']}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Start again</Text>
-          <Text style={styles.subtitle}>We lost your details. Please enter them once more.</Text>
-          <PrimaryButton label="Back to sign up" onPress={() => router.replace('/(auth)/signup')} />
-        </View>
-      </SafeScreenWrapper>
+      <AuthShell
+        title="Start again"
+        subtitle="We lost your details. Please enter them once more."
+        onClose={() => router.replace('/(auth)/signup')}
+      >
+        <AuthButton label="Back to sign up" onPress={() => router.replace('/(auth)/signup')} />
+      </AuthShell>
     );
   }
 
   return (
-    <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <View style={styles.content}>
-        <View style={styles.header}>
-          <Text style={styles.title}>Check your email</Text>
-          <Text style={styles.subtitle}>
-            We sent a {LENGTH}-digit code to <Text style={styles.email}>{draft.email}</Text>. It
-            expires in 10 minutes.
-          </Text>
-        </View>
+    <AuthShell
+      title="Check your email"
+      subtitle={`We sent a ${LENGTH}-digit code to ${draft.email}. It expires in 10 minutes.`}
+    >
+      <Text style={styles.label}>Verification code</Text>
 
-        <Pressable
-          style={styles.cells}
-          onPress={() => inputRef.current?.focus()}
-          accessibilityRole="button"
-          accessibilityLabel={`Enter the ${LENGTH} digit code`}
-        >
-          {Array.from({ length: LENGTH }).map((_, i) => {
-            const filled = i < code.length;
-            const active = i === code.length;
-            return (
-              <View
-                key={i}
-                style={[
-                  styles.cell,
-                  {
-                    borderColor: error ? M3.error : active ? M3.primary : M3.outlineVariant,
-                    borderWidth: active || error ? 2 : 1,
-                  },
-                ]}
-              >
-                <Text style={styles.digit}>{filled ? code[i] : ''}</Text>
-              </View>
-            );
-          })}
-        </Pressable>
-
-        <TextInput
-          ref={inputRef}
-          value={code}
-          onChangeText={change}
-          keyboardType="number-pad"
-          textContentType="oneTimeCode"
-          autoComplete="one-time-code"
-          maxLength={LENGTH}
-          autoFocus
-          editable={!busy}
-          style={styles.hidden}
-        />
-
-        {error && (
-          <View style={styles.banner}>
-            <Text style={[TypeScale.bodyMedium, { color: M3.onErrorContainer }]}>{error}</Text>
-          </View>
-        )}
-
-        <PrimaryButton
-          label="Verify and continue"
-          onPress={() => verify(code)}
-          loading={busy}
-          disabled={code.length < LENGTH}
-        />
-
-        <View style={styles.footer}>
-          <Text style={[TypeScale.bodyMedium, { color: M3.onSurfaceVariant }]}>
-            Did not get it?
-          </Text>
-          <Pressable onPress={resend} disabled={resendIn > 0 || busy}>
-            <Text
+      <Pressable
+        style={styles.cells}
+        onPress={() => inputRef.current?.focus()}
+        accessibilityRole="button"
+        accessibilityLabel={`Enter the ${LENGTH} digit code`}
+      >
+        {Array.from({ length: LENGTH }).map((_, i) => {
+          const active = i === code.length;
+          return (
+            <View
+              key={i}
               style={[
-                TypeScale.labelLarge,
-                { color: resendIn > 0 ? M3.onSurfaceVariant : M3.primary },
+                styles.cell,
+                {
+                  borderColor: error ? Auth.danger : active ? Auth.gold : Auth.fieldBorder,
+                  backgroundColor: active ? Auth.fieldFocus : Auth.field,
+                },
               ]}
             >
-              {resendIn > 0 ? `Resend in ${resendIn}s` : 'Resend code'}
-            </Text>
-          </Pressable>
-        </View>
+              <Text style={styles.digit}>{code[i] ?? ''}</Text>
+            </View>
+          );
+        })}
+      </Pressable>
 
-        <Pressable onPress={() => router.back()} disabled={busy} style={styles.change}>
-          <Text style={[TypeScale.labelLarge, { color: M3.primary }]}>Use a different email</Text>
-        </Pressable>
+      <TextInput
+        ref={inputRef}
+        value={code}
+        onChangeText={change}
+        keyboardType="number-pad"
+        textContentType="oneTimeCode"
+        autoComplete="one-time-code"
+        maxLength={LENGTH}
+        autoFocus
+        editable={!busy}
+        style={styles.hidden}
+      />
+
+      {error && <ErrorBanner message={error} />}
+
+      <AuthButton
+        label="Verify"
+        onPress={() => verify(code)}
+        loading={busy}
+        disabled={code.length < LENGTH}
+      />
+
+      <View style={styles.resend}>
+        <Text style={styles.resendText}>Didn&apos;t get it?</Text>
+        {resendIn > 0 ? (
+          <Text style={styles.waiting}>Resend in {resendIn}s</Text>
+        ) : (
+          <TextLink label="Resend code" onPress={resend} />
+        )}
       </View>
-    </SafeScreenWrapper>
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  content: { padding: 24, gap: 28 },
-  header: { gap: 8, marginTop: 8 },
-  title: { ...TypeScale.headlineLarge, color: M3.onSurface },
-  subtitle: { ...TypeScale.bodyLarge, color: M3.onSurfaceVariant },
-  email: { color: M3.onSurface },
-  cells: { flexDirection: 'row', gap: 10, justifyContent: 'space-between' },
+  label: {
+    fontFamily: AuthFont.mono,
+    fontSize: 13,
+    fontWeight: '700',
+    color: Auth.ink,
+    letterSpacing: 0.2,
+  },
+  cells: { flexDirection: 'row', gap: 9, marginTop: -8 },
   cell: {
     flex: 1,
     height: 60,
-    borderRadius: Shape.small,
+    borderRadius: 14,
+    borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    backgroundColor: M3.surfaceContainerLow,
   },
-  digit: { ...TypeScale.headlineSmall, color: M3.onSurface },
+  digit: { fontSize: 24, fontWeight: '700', color: Auth.ink },
   hidden: { position: 'absolute', opacity: 0, height: 1, width: 1 },
-  banner: { backgroundColor: M3.errorContainer, borderRadius: 12, padding: 14 },
-  footer: { flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center' },
-  change: { alignSelf: 'center' },
+  resend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  resendText: { fontSize: 14, color: Auth.muted },
+  waiting: { fontSize: 14, fontWeight: '600', color: Auth.hint },
 });

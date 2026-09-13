@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 
 import {
   emailError,
@@ -9,8 +9,16 @@ import {
   resetOtpError,
   resetPassword,
 } from '@services/auth.service';
-import { AppTextInput, PrimaryButton, SafeScreenWrapper } from '@shared/components';
-import { M3, TypeScale } from '@theme';
+
+import {
+  Auth,
+  AuthButton,
+  AuthField,
+  AuthFooter,
+  AuthShell,
+  ErrorBanner,
+  TextLink,
+} from './components';
 
 type Step = 'email' | 'reset';
 
@@ -24,6 +32,9 @@ export function ForgotPasswordScreen() {
   const [errors, setErrors] = useState<Record<string, string | undefined>>({});
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
+
+  const clear = (field: string) =>
+    setErrors((e) => (e[field] || e.form ? { ...e, [field]: undefined, form: undefined } : e));
 
   const sendCode = async () => {
     const invalid = emailError(email);
@@ -68,101 +79,102 @@ export function ForgotPasswordScreen() {
 
   if (done) {
     return (
-      <SafeScreenWrapper edges={['top', 'left', 'right']}>
-        <View style={styles.content}>
-          <Text style={styles.title}>Password changed</Text>
-          <Text style={styles.subtitle}>Sign in with your new password.</Text>
-          <PrimaryButton label="Back to sign in" onPress={() => router.replace('/(auth)/login')} />
-        </View>
-      </SafeScreenWrapper>
+      <AuthShell
+        title="Password changed"
+        subtitle="Your old password no longer works. Sign in with the new one."
+        onClose={() => router.replace('/(auth)/login')}
+      >
+        <AuthButton label="Back to sign in" onPress={() => router.replace('/(auth)/login')} />
+      </AuthShell>
     );
   }
 
+  const onEmailStep = step === 'email';
+
   return (
-    <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <KeyboardAvoidingView style={styles.flex} behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
-        <ScrollView
-          contentContainerStyle={styles.content}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={styles.header}>
-            <Text style={styles.title}>Reset your password</Text>
-            <Text style={styles.subtitle}>
-              {step === 'email'
-                ? 'Enter the email on your account and we will send you a reset code.'
-                : `Enter the code we sent to ${email} and choose a new password.`}
-            </Text>
-          </View>
+    <AuthShell
+      title="Reset password"
+      subtitle={
+        onEmailStep
+          ? 'Enter the email on your account and we will send a reset code.'
+          : `Enter the code sent to ${email} and choose a new password.`
+      }
+      footer={
+        <AuthFooter
+          question="Remembered it?"
+          action="Sign in"
+          onPress={() => router.replace('/(auth)/login')}
+        />
+      }
+    >
+      {onEmailStep ? (
+        <AuthField
+          label="Email"
+          icon={{ ios: 'envelope', android: 'mail', web: 'mail' }}
+          value={email}
+          onChangeText={(t) => {
+            setEmail(t);
+            clear('email');
+          }}
+          keyboardType="email-address"
+          autoCapitalize="none"
+          autoComplete="email"
+          error={errors.email}
+          editable={!busy}
+        />
+      ) : (
+        <>
+          <AuthField
+            label="Reset code"
+            icon={{ ios: 'number', android: 'pin', web: 'pin' }}
+            value={otp}
+            onChangeText={(t) => {
+              setOtp(t.replace(/\D/g, '').slice(0, 10));
+              clear('otp');
+            }}
+            keyboardType="number-pad"
+            autoComplete="one-time-code"
+            maxLength={10}
+            error={errors.otp}
+            editable={!busy}
+          />
 
-          <View style={styles.form}>
-            {step === 'email' ? (
-              <AppTextInput
-                label="Email"
-                value={email}
-                onChangeText={setEmail}
-                keyboardType="email-address"
-                autoCapitalize="none"
-                autoComplete="email"
-                error={errors.email}
-                editable={!busy}
-              />
-            ) : (
-              <>
-                <AppTextInput
-                  label="Verification code"
-                  value={otp}
-                  onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 10))}
-                  keyboardType="number-pad"
-                  autoComplete="one-time-code"
-                  maxLength={10}
-                  error={errors.otp}
-                  editable={!busy}
-                />
-                <AppTextInput
-                  label="New password"
-                  value={password}
-                  onChangeText={setPassword}
-                  secureTextEntry
-                  autoComplete="new-password"
-                  error={errors.password}
-                  supporting="8+ characters, one uppercase letter and one number"
-                  editable={!busy}
-                />
-              </>
-            )}
+          <AuthField
+            label="New password"
+            icon={{ ios: 'lock', android: 'lock', web: 'lock' }}
+            value={password}
+            onChangeText={(t) => {
+              setPassword(t);
+              clear('password');
+            }}
+            secure
+            autoComplete="new-password"
+            error={errors.password}
+            hint="8+ characters, one uppercase letter and one number"
+            editable={!busy}
+          />
+        </>
+      )}
 
-            {errors.form && (
-              <View style={styles.banner}>
-                <Text style={[TypeScale.bodyMedium, { color: M3.onErrorContainer }]}>
-                  {errors.form}
-                </Text>
-              </View>
-            )}
+      {errors.form && <ErrorBanner message={errors.form} />}
 
-            <PrimaryButton
-              label={step === 'email' ? 'Send code' : 'Change password'}
-              onPress={step === 'email' ? sendCode : submitReset}
-              loading={busy}
-            />
-          </View>
+      <AuthButton
+        label={onEmailStep ? 'Send code' : 'Change password'}
+        onPress={onEmailStep ? sendCode : submitReset}
+        loading={busy}
+      />
 
-          <Pressable onPress={() => router.back()} disabled={busy} style={styles.back}>
-            <Text style={[TypeScale.labelLarge, { color: M3.primary }]}>Back to sign in</Text>
-          </Pressable>
-        </ScrollView>
-      </KeyboardAvoidingView>
-    </SafeScreenWrapper>
+      {!onEmailStep && (
+        <View style={styles.resend}>
+          <Text style={styles.resendText}>No code yet?</Text>
+          <TextLink label="Send another" onPress={sendCode} />
+        </View>
+      )}
+    </AuthShell>
   );
 }
 
 const styles = StyleSheet.create({
-  flex: { flex: 1 },
-  content: { padding: 24, paddingBottom: 48, gap: 28 },
-  header: { gap: 8, marginTop: 8 },
-  title: { ...TypeScale.headlineLarge, color: M3.onSurface },
-  subtitle: { ...TypeScale.bodyLarge, color: M3.onSurfaceVariant },
-  form: { gap: 20 },
-  banner: { backgroundColor: M3.errorContainer, borderRadius: 12, padding: 14 },
-  back: { alignSelf: 'center' },
+  resend: { flexDirection: 'row', alignItems: 'center', justifyContent: 'center', gap: 7 },
+  resendText: { fontSize: 14, color: Auth.muted },
 });
