@@ -1,37 +1,36 @@
+import AsyncStorage from '@react-native-async-storage/async-storage';
+import { createClient } from '@supabase/supabase-js';
+
 /**
- * Supabase client setup — stub.
+ * One Supabase client for the whole app.
  *
- * @supabase/supabase-js is NOT yet installed.
- * This file will be replaced with the real Supabase client when the package
- * is installed.
- *
- * The client is initialized once here and imported everywhere else —
- * never create multiple Supabase client instances.
- *
- * Environment variables (from .env.example):
- *   EXPO_PUBLIC_SUPABASE_URL
- *   EXPO_PUBLIC_SUPABASE_ANON_KEY
- *
- * Security: Supabase SDK handles auth token storage via platform-secure storage.
- * Do NOT implement custom token storage. See 14_Auth_and_Roles.md §3,
- * 20_Non_Functional_Requirements.md §2.
+ * Only Auth is used here. Data goes through the LegalX backend, which applies
+ * the business rules — suspension checks, credit, billing — that a direct table
+ * read would bypass.
  */
 
-// When @supabase/supabase-js is installed, replace this file with:
-//
-// import { createClient } from '@supabase/supabase-js';
-// import Constants from 'expo-constants';
-//
-// const supabaseUrl = Constants.expoConfig?.extra?.supabaseUrl as string;
-// const supabaseAnonKey = Constants.expoConfig?.extra?.supabaseAnonKey as string;
-//
-// export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
-//   auth: { storage: ..., autoRefreshToken: true, persistSession: true },
-// });
+const url = process.env.EXPO_PUBLIC_SUPABASE_URL;
+const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY;
 
-/** Typed placeholder — replaced when @supabase/supabase-js is installed. */
-export const supabase = null as unknown as {
-  from: (table: string) => unknown;
-  auth: unknown;
-  functions: { invoke: (name: string, options?: unknown) => Promise<unknown> };
-};
+if (!url || !anonKey) {
+  throw new Error(
+    'Missing EXPO_PUBLIC_SUPABASE_URL or EXPO_PUBLIC_SUPABASE_ANON_KEY. Copy .env.example to .env.local.',
+  );
+}
+
+export const supabase = createClient(url, anonKey, {
+  auth: {
+    storage: AsyncStorage,
+    persistSession: true,
+    autoRefreshToken: true,
+    // No URL to parse in a native app; leaving this on makes the client wait
+    // on a browser API that never resolves.
+    detectSessionInUrl: false,
+  },
+});
+
+/** Current access token, refreshed by the client if it has expired. */
+export async function getAccessToken(): Promise<string | null> {
+  const { data } = await supabase.auth.getSession();
+  return data.session?.access_token ?? null;
+}
