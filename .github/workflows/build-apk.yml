@@ -32,7 +32,7 @@ jobs:
           cache: npm
 
       - name: Setup Java
-        uses: actions/setup-java@v4
+        uses: actions/setup-java@v5
         with:
           distribution: temurin
           java-version: '17'
@@ -56,11 +56,13 @@ jobs:
             grep -q "^${key}=." .env || { echo "::error::${key} is empty. Set it in repository secrets."; exit 1; }
           done
 
-      - name: Typecheck
-        run: npx tsc --noEmit
-
+      # Prebuild first: it regenerates expo-env.d.ts, which is gitignored and
+      # carries the reference to expo/types that declares CSS imports.
       - name: Prebuild Android
         run: npx expo prebuild --platform android --no-install
+
+      - name: Typecheck
+        run: npx tsc --noEmit
 
       - name: Build release APK
         working-directory: android
