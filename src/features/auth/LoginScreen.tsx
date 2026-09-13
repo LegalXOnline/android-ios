@@ -1,193 +1,136 @@
 import { useRouter } from 'expo-router';
 import { useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
-import {
-  AppHeader,
-  AppTextInput,
-  PrimaryButton,
-  SafeScreenWrapper,
-  SecondaryButton,
-} from '@shared/components';
-import { validateEmail, validatePhone } from '@shared/utils/validation';
-import { Colors, FontSize, FontWeight, Layout, Spacing, Typography } from '@theme';
+import { useAuth } from '@providers/AuthProvider';
+import { emailError } from '@services/auth.service';
+import { AppTextInput, PrimaryButton, SafeScreenWrapper } from '@shared/components';
+import { M3, TypeScale } from '@theme';
 
 export function LoginScreen() {
   const router = useRouter();
-  const [identifier, setIdentifier] = useState('');
+  const { signIn } = useAuth();
+
+  const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-  const [errorMsg, setErrorMsg] = useState('');
+  const [errors, setErrors] = useState<{ email?: string; password?: string; form?: string }>({});
+  const [busy, setBusy] = useState(false);
 
-  const handleLogin = () => {
-    const trimmed = identifier.trim();
-    if (!trimmed) {
-      setErrorMsg('Please enter your registered phone number or email.');
+  const submit = async () => {
+    const next = {
+      email: emailError(email) ?? undefined,
+      password: password ? undefined : 'Enter your password',
+    };
+    if (next.email || next.password) {
+      setErrors(next);
       return;
     }
 
-    const isValid = validateEmail(trimmed) || validatePhone(trimmed);
-    if (!isValid) {
-      setErrorMsg('Please enter a valid 10-digit mobile number or email address.');
-      return;
+    setErrors({});
+    setBusy(true);
+    try {
+      await signIn(email, password);
+      // AuthGate moves to the app once the user is set.
+    } catch (err) {
+      setErrors({ form: (err as Error).message });
+    } finally {
+      setBusy(false);
     }
-
-    setErrorMsg('');
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/(auth)/otp' as any);
-  };
-
-  const handleGoToSignup = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/(auth)/signup' as any);
-  };
-
-  const handleForgotPassword = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/(auth)/forgot-password' as any);
-  };
-
-  const handleSkipToHome = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.replace('/(tabs)' as any);
   };
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Sign In" />
-
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={styles.scrollContent}
-        showsVerticalScrollIndicator={false}
+      <KeyboardAvoidingView
+        style={styles.flex}
+        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
       >
-        <View style={styles.headerBlock}>
-          <Text style={styles.title}>Welcome Back to LegalX</Text>
-          <Text style={styles.subtitle}>
-            Enter your credentials to access verified legal services & consultation history.
-          </Text>
-        </View>
+        <ScrollView
+          contentContainerStyle={styles.content}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.header}>
+            <Text style={styles.title}>Welcome back</Text>
+            <Text style={styles.subtitle}>
+              Sign in to reach a verified advocate and see your consultation history.
+            </Text>
+          </View>
 
-        <View style={styles.formBlock}>
-          <AppTextInput
-            label="Phone Number or Email"
-            value={identifier}
-            onChangeText={(text) => {
-              setIdentifier(text);
-              if (errorMsg) setErrorMsg('');
-            }}
-            placeholder="e.g. +91 98765 43210 or user@example.com"
-            keyboardType="email-address"
-            autoCapitalize="none"
-            testID="login-identifier-input"
-          />
+          <View style={styles.form}>
+            <AppTextInput
+              label="Email"
+              value={email}
+              onChangeText={(t) => {
+                setEmail(t);
+                if (errors.email || errors.form) setErrors((e) => ({ ...e, email: undefined, form: undefined }));
+              }}
+              placeholder="you@gmail.com"
+              keyboardType="email-address"
+              autoCapitalize="none"
+              autoComplete="email"
+              error={errors.email}
+              editable={!busy}
+            />
 
-          <AppTextInput
-            label="Password (Optional for OTP)"
-            value={password}
-            onChangeText={setPassword}
-            placeholder="••••••••"
-            secureTextEntry
-            testID="login-password-input"
-          />
+            <AppTextInput
+              label="Password"
+              value={password}
+              onChangeText={(t) => {
+                setPassword(t);
+                if (errors.password || errors.form) setErrors((e) => ({ ...e, password: undefined, form: undefined }));
+              }}
+              placeholder="Your password"
+              secureTextEntry
+              autoComplete="current-password"
+              error={errors.password}
+              editable={!busy}
+            />
 
-          {errorMsg ? <Text style={styles.errorText}>{errorMsg}</Text> : null}
+            <Pressable
+              onPress={() => router.push('/(auth)/forgot-password')}
+              disabled={busy}
+              style={styles.forgot}
+            >
+              <Text style={[TypeScale.labelLarge, { color: M3.primary }]}>Forgot password?</Text>
+            </Pressable>
 
-          <Pressable onPress={handleForgotPassword} style={styles.forgotBtn}>
-            <Text style={styles.forgotText}>Forgot Password?</Text>
-          </Pressable>
+            {errors.form && (
+              <View style={styles.errorBanner}>
+                <Text style={[TypeScale.bodyMedium, { color: M3.onErrorContainer }]}>
+                  {errors.form}
+                </Text>
+              </View>
+            )}
 
-          <PrimaryButton
-            label="Send OTP / Sign In"
-            onPress={handleLogin}
-            testID="login-submit-button"
-          />
-        </View>
+            <PrimaryButton label="Sign in" onPress={submit} loading={busy} />
+          </View>
 
-        <View style={styles.dividerRow}>
-          <View style={styles.dividerLine} />
-          <Text style={styles.dividerText}>OR</Text>
-          <View style={styles.dividerLine} />
-        </View>
-
-        <View style={styles.footerBlock}>
-          <SecondaryButton
-            label="Create New Account"
-            onPress={handleGoToSignup}
-            testID="login-signup-button"
-          />
-
-          <Pressable onPress={handleSkipToHome} style={styles.skipBtn}>
-            <Text style={styles.skipText}>Continue as Guest →</Text>
-          </Pressable>
-        </View>
-      </ScrollView>
+          <View style={styles.footer}>
+            <Text style={[TypeScale.bodyMedium, { color: M3.onSurfaceVariant }]}>
+              New to LegalX?
+            </Text>
+            <Pressable onPress={() => router.push('/(auth)/signup')} disabled={busy}>
+              <Text style={[TypeScale.labelLarge, { color: M3.primary }]}>Create an account</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
     </SafeScreenWrapper>
   );
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
+  flex: { flex: 1 },
+  content: { padding: 24, paddingBottom: 48, gap: 32 },
+  header: { gap: 8, marginTop: 8 },
+  title: { ...TypeScale.headlineLarge, color: M3.onSurface },
+  subtitle: { ...TypeScale.bodyLarge, color: M3.onSurfaceVariant },
+  form: { gap: 20 },
+  forgot: { alignSelf: 'flex-start', paddingVertical: 4 },
+  errorBanner: {
+    backgroundColor: M3.errorContainer,
+    borderRadius: 12,
+    padding: 14,
   },
-  scrollContent: {
-    paddingHorizontal: Layout.screenPaddingHWide,
-    paddingVertical: Spacing.lg,
-    gap: Spacing.xl,
-  },
-  headerBlock: {
-    gap: Spacing.xs,
-  },
-  title: {
-    ...Typography.h1,
-    fontSize: 24,
-    color: Colors.ink,
-  },
-  subtitle: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-    lineHeight: 22,
-  },
-  formBlock: {
-    gap: Spacing.md,
-  },
-  errorText: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.danger,
-    fontWeight: FontWeight.medium,
-  },
-  forgotBtn: {
-    alignSelf: 'flex-end',
-  },
-  forgotText: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.primary,
-    fontWeight: FontWeight.semibold,
-  },
-  dividerRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.md,
-    marginVertical: Spacing.xs,
-  },
-  dividerLine: {
-    flex: 1,
-    height: 1,
-    backgroundColor: Colors.border,
-  },
-  dividerText: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.textSecondary,
-  },
-  footerBlock: {
-    gap: Spacing.md,
-  },
-  skipBtn: {
-    alignItems: 'center',
-    paddingVertical: Spacing.xs,
-  },
-  skipText: {
-    fontSize: FontSize.body,
-    color: Colors.textSecondary,
-    fontWeight: FontWeight.medium,
-  },
+  footer: { flexDirection: 'row', gap: 6, justifyContent: 'center', alignItems: 'center' },
 });

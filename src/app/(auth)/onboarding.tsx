@@ -1,10 +1,5 @@
-/**
- * Onboarding — placeholder.
- * Screen ID: SCR-00a
- * Spec: 14_Auth_and_Roles.md §2
- */
-import { View } from 'react-native';
+import { OnboardingScreen } from '@features/auth/OnboardingScreen';
 
-export default function OnboardingScreen() {
-  return <View />;
+export default function OnboardingRoute() {
+  return <OnboardingScreen />;
 }

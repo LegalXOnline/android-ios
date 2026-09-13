@@ -13,7 +13,7 @@ import {
 } from 'react-native-safe-area-context';
 import { StyleSheet, type StyleProp, type ViewStyle } from 'react-native';
 
-import { Colors } from '@theme';
+import { M3 } from '@theme';
 
 interface SafeScreenWrapperProps {
   children: React.ReactNode;
@@ -40,6 +40,6 @@ export function SafeScreenWrapper({
 const styles = StyleSheet.create({
   base: {
     flex: 1,
-    backgroundColor: Colors.surface,
+    backgroundColor: M3.surface,
   },
 });
