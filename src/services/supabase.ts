@@ -18,9 +18,23 @@ if (!url || !anonKey) {
   );
 }
 
+/**
+ * Expo Router renders web routes in Node first, where AsyncStorage reaches for
+ * a window that does not exist. Native never takes this branch.
+ */
+const memory = new Map<string, string>();
+const storage =
+  typeof window === 'undefined'
+    ? {
+        getItem: async (k: string) => memory.get(k) ?? null,
+        setItem: async (k: string, v: string) => void memory.set(k, v),
+        removeItem: async (k: string) => void memory.delete(k),
+      }
+    : AsyncStorage;
+
 export const supabase = createClient(url, anonKey, {
   auth: {
-    storage: AsyncStorage,
+    storage,
     persistSession: true,
     autoRefreshToken: true,
     // No URL to parse in a native app; leaving this on makes the client wait

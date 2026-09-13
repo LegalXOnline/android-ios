@@ -10,6 +10,8 @@ module.exports = defineConfig([
       'dist/**',
       'node_modules/**',
       '.expo/**',
+      // macOS sidecar files, created because the drive is not HFS+
+      '**/._*',
       // Pre-existing boilerplate — not modified in Phase 1
       'src/hooks/use-color-scheme.web.ts',
       'src/hooks/use-color-scheme.ts',

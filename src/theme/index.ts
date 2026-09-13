@@ -9,6 +9,8 @@
  * Never define colors, spacing, or typography inline or per-component.
  */
 
+import { M3, TypeScale, Shape, Elevation, Motion, StateLayer } from './md3';
+
 // ─── Colors (04_Design_System.md §2) ─────────────────────────────────────────
 
 export const Colors = {
@@ -150,8 +152,6 @@ export const Shadows = {
 // ─── Theme object (convenience re-export) ─────────────────────────────────────
 
 export * from './md3';
-
-import { M3, TypeScale, Shape, Elevation, Motion, StateLayer } from './md3';
 
 export const theme = {
   colors: Colors,
