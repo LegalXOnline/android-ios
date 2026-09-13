@@ -3,6 +3,7 @@ import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
+import { useAuth } from '@providers/AuthProvider';
 import {
   AppHeader,
   Avatar,
@@ -27,14 +28,13 @@ interface MenuItem {
 
 export function ProfileRootScreen() {
   const router = useRouter();
+  const { user, signOut } = useAuth();
   const [profile] = useState(PLACEHOLDER_USER_PROFILE);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
+  const [signingOut, setSigningOut] = useState(false);
 
-  const initials = profile.name
-    .split(' ')
-    .map((n) => n[0])
-    .join('')
-    .slice(0, 2);
+  const name = user ? `${user.firstName} ${user.lastName}`.trim() : '';
+  const initials = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase();
 
   const MENU_ITEMS: MenuItem[] = [
     {
@@ -106,9 +106,16 @@ export function ProfileRootScreen() {
     router.push('/profile/edit' as Href);
   };
 
-  const handleConfirmLogout = () => {
-    setShowLogoutModal(false);
-    router.replace('/(auth)/login' as Href);
+  const handleConfirmLogout = async () => {
+    setSigningOut(true);
+    try {
+      // Clears the stored session; AuthGate sends us to onboarding once the
+      // user is gone. Navigating on our own would only bounce straight back.
+      await signOut();
+    } finally {
+      setSigningOut(false);
+      setShowLogoutModal(false);
+    }
   };
 
   return (
@@ -124,14 +131,8 @@ export function ProfileRootScreen() {
           <Avatar initials={initials} size="xl" />
 
           <View style={styles.headerInfo}>
-            <Text style={styles.userName}>{profile.name}</Text>
-            <Text style={styles.userContact}>{profile.email}</Text>
-            <Text style={styles.userContact}>{profile.phone}</Text>
-
-            <View style={styles.badgeRow}>
-              {profile.isPhoneVerified && <Badge label="Phone Verified" variant="success" />}
-              {profile.isEmailVerified && <Badge label="Email Verified" variant="default" />}
-            </View>
+            <Text style={styles.userName}>{name}</Text>
+            <Text style={styles.userContact}>{user?.email}</Text>
           </View>
 
           <SecondaryButton
@@ -220,13 +221,14 @@ export function ProfileRootScreen() {
           <View style={styles.modalCard}>
             <Text style={styles.modalTitle}>Log Out of LegalX?</Text>
             <Text style={styles.modalMessage}>
-              Are you sure you want to log out? You will need to verify your phone number to sign back in.
+              You will need your email and password to sign back in.
             </Text>
 
             <View style={styles.modalActions}>
               <PrimaryButton
                 label="Confirm Log Out"
                 onPress={handleConfirmLogout}
+                loading={signingOut}
                 testID="confirm-logout-button"
               />
               <SecondaryButton
