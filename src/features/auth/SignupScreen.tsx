@@ -103,7 +103,6 @@ export function SignupScreen() {
                 label="First name"
                 value={firstName}
                 onChangeText={setFirstName}
-                placeholder="Priya"
                 autoCapitalize="words"
                 error={errors.firstName}
                 editable={!busy}
@@ -113,7 +112,6 @@ export function SignupScreen() {
                 label="Last name"
                 value={lastName}
                 onChangeText={setLastName}
-                placeholder="Sharma"
                 autoCapitalize="words"
                 error={errors.lastName}
                 editable={!busy}
@@ -125,7 +123,6 @@ export function SignupScreen() {
               label="Email"
               value={email}
               onChangeText={setEmail}
-              placeholder="you@gmail.com"
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -137,7 +134,6 @@ export function SignupScreen() {
               label="Password"
               value={password}
               onChangeText={setPassword}
-              placeholder="At least 8 characters"
               secureTextEntry
               autoComplete="new-password"
               error={errors.password}

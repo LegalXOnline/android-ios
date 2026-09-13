@@ -64,7 +64,6 @@ export function LoginScreen() {
                 setEmail(t);
                 if (errors.email || errors.form) setErrors((e) => ({ ...e, email: undefined, form: undefined }));
               }}
-              placeholder="you@gmail.com"
               keyboardType="email-address"
               autoCapitalize="none"
               autoComplete="email"
@@ -79,7 +78,6 @@ export function LoginScreen() {
                 setPassword(t);
                 if (errors.password || errors.form) setErrors((e) => ({ ...e, password: undefined, form: undefined }));
               }}
-              placeholder="Your password"
               secureTextEntry
               autoComplete="current-password"
               error={errors.password}

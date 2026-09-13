@@ -243,7 +243,6 @@ export function SupportScreen() {
               label="Subject / Topic"
               value={subject}
               onChangeText={setSubject}
-              placeholder="e.g. Question about order #LX-ORD-8492"
               testID="support-subject-input"
             />
 
@@ -251,7 +250,6 @@ export function SupportScreen() {
               label="Description"
               value={description}
               onChangeText={setDescription}
-              placeholder="Describe your query or issue in detail..."
               multiline
               numberOfLines={4}
               testID="support-description-input"
@@ -381,7 +379,6 @@ export function SupportScreen() {
                       label="Reply to Support"
                       value={replyText}
                       onChangeText={setReplyText}
-                      placeholder="Type your message..."
                       multiline
                     />
                     <PrimaryButton

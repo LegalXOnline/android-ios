@@ -168,7 +168,6 @@ export function BillingScreen() {
                   label="Coupon Code"
                   value={coupon}
                   onChangeText={setCoupon}
-                  placeholder="Enter code (try LEGALX100)"
                   autoCapitalize="characters"
                   testID="coupon-input"
                 />

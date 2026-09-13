@@ -93,7 +93,6 @@ export function DocumentationListScreen() {
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search 8 predefined legal services..."
         onClear={() => setSearchQuery('')}
       />
 

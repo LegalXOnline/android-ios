@@ -104,7 +104,6 @@ export function KnowledgeHomeScreen() {
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search legal articles, guides, or laws..."
         onClear={() => setSearchQuery('')}
       />
 

@@ -46,7 +46,6 @@ export function EditProfileScreen() {
             label="Full Name"
             value={name}
             onChangeText={setName}
-            placeholder="Your name"
             testID="edit-name-input"
           />
 
@@ -54,7 +53,6 @@ export function EditProfileScreen() {
             label="Email Address"
             value={email}
             onChangeText={setEmail}
-            placeholder="user@example.com"
             keyboardType="email-address"
             autoCapitalize="none"
             testID="edit-email-input"
@@ -64,7 +62,6 @@ export function EditProfileScreen() {
             label="Mobile Phone Number"
             value={phone}
             onChangeText={setPhone}
-            placeholder="+91 98765 43210"
             keyboardType="phone-pad"
             testID="edit-phone-input"
           />
@@ -77,7 +74,6 @@ export function EditProfileScreen() {
             label="Street Address / Building"
             value={address}
             onChangeText={setAddress}
-            placeholder="Address line"
             testID="edit-address-input"
           />
 
@@ -87,7 +83,6 @@ export function EditProfileScreen() {
                 label="City"
                 value={city}
                 onChangeText={setCity}
-                placeholder="City"
                 testID="edit-city-input"
               />
             </View>
@@ -96,7 +91,6 @@ export function EditProfileScreen() {
                 label="State"
                 value={state}
                 onChangeText={setState}
-                placeholder="State"
                 testID="edit-state-input"
               />
             </View>
@@ -106,7 +100,6 @@ export function EditProfileScreen() {
             label="Pincode"
             value={pincode}
             onChangeText={setPincode}
-            placeholder="122002"
             keyboardType="number-pad"
             maxLength={6}
             testID="edit-pincode-input"

@@ -57,8 +57,17 @@ export function nameError(value: string, field: string): string | null {
   return null;
 }
 
+/** Signup codes are minted by the backend and are always six digits. */
 export function otpError(value: string): string | null {
   return /^\d{6}$/.test(value.trim()) ? null : 'Enter the 6-digit code from your email';
+}
+
+/**
+ * Recovery codes come from Supabase, which issues eight digits today but is
+ * configurable, so the backend accepts six to ten and so does this.
+ */
+export function resetOtpError(value: string): string | null {
+  return /^\d{6,10}$/.test(value.trim()) ? null : 'Enter the code from your email';
 }
 
 // ─── Signup ─────────────────────────────────────────────────────────────────

@@ -101,7 +101,6 @@ export function HomeScreen() {
           <SearchBar
             value=""
             onChangeText={() => undefined}
-            placeholder="Search documents, lawyers, or topics"
             style={styles.searchBar}
             testID="home-search-bar"
           />

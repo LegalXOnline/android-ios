@@ -240,8 +240,6 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
                 <TextInput
                   value={clientNotes}
                   onChangeText={setClientNotes}
-                  placeholder="Briefly describe your legal query or case context..."
-                  placeholderTextColor={Colors.textSecondary}
                   style={styles.notesInput}
                   multiline
                   numberOfLines={3}

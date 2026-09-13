@@ -4,9 +4,9 @@ import { KeyboardAvoidingView, Platform, Pressable, ScrollView, StyleSheet, Text
 
 import {
   emailError,
-  otpError,
   passwordError,
   requestPasswordReset,
+  resetOtpError,
   resetPassword,
 } from '@services/auth.service';
 import { AppTextInput, PrimaryButton, SafeScreenWrapper } from '@shared/components';
@@ -46,7 +46,7 @@ export function ForgotPasswordScreen() {
 
   const submitReset = async () => {
     const next = {
-      otp: otpError(otp) ?? undefined,
+      otp: resetOtpError(otp) ?? undefined,
       password: passwordError(password) ?? undefined,
     };
     if (next.otp || next.password) {
@@ -90,7 +90,7 @@ export function ForgotPasswordScreen() {
             <Text style={styles.title}>Reset your password</Text>
             <Text style={styles.subtitle}>
               {step === 'email'
-                ? 'Enter the email on your account and we will send a 6-digit code.'
+                ? 'Enter the email on your account and we will send you a reset code.'
                 : `Enter the code we sent to ${email} and choose a new password.`}
             </Text>
           </View>
@@ -101,7 +101,6 @@ export function ForgotPasswordScreen() {
                 label="Email"
                 value={email}
                 onChangeText={setEmail}
-                placeholder="you@gmail.com"
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
@@ -113,11 +112,10 @@ export function ForgotPasswordScreen() {
                 <AppTextInput
                   label="Verification code"
                   value={otp}
-                  onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 6))}
-                  placeholder="123456"
+                  onChangeText={(t) => setOtp(t.replace(/\D/g, '').slice(0, 10))}
                   keyboardType="number-pad"
                   autoComplete="one-time-code"
-                  maxLength={6}
+                  maxLength={10}
                   error={errors.otp}
                   editable={!busy}
                 />
@@ -125,7 +123,6 @@ export function ForgotPasswordScreen() {
                   label="New password"
                   value={password}
                   onChangeText={setPassword}
-                  placeholder="At least 8 characters"
                   secureTextEntry
                   autoComplete="new-password"
                   error={errors.password}

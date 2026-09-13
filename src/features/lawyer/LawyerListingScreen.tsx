@@ -106,7 +106,6 @@ export function LawyerListingScreen() {
       <SearchBar
         value={searchQuery}
         onChangeText={setSearchQuery}
-        placeholder="Search advocate by name, practice area, language, or court..."
         onClear={() => setSearchQuery('')}
         testID="lawyer-search-bar"
       />
