@@ -149,6 +149,10 @@ export const Shadows = {
 
 // ─── Theme object (convenience re-export) ─────────────────────────────────────
 
+export * from './md3';
+
+import { M3, TypeScale, Shape, Elevation, Motion, StateLayer } from './md3';
+
 export const theme = {
   colors: Colors,
   typography: Typography,
@@ -159,6 +163,12 @@ export const theme = {
   layout: Layout,
   radii: Radii,
   shadows: Shadows,
+  m3: M3,
+  type: TypeScale,
+  shape: Shape,
+  elevation: Elevation,
+  motion: Motion,
+  state: StateLayer,
 } as const;
 
 export type Theme = typeof theme;
