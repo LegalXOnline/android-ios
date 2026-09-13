@@ -1,56 +1,81 @@
-name: Fast APK Build
+name: Build APK
 
 on:
   push:
-    branches:
-      - main
-  workflow_dispatch: # Allows you to trigger the build manually from the GitHub UI
+    branches: [main]
+  workflow_dispatch:
 
 jobs:
   build:
     runs-on: ubuntu-latest
-    
+
     steps:
-      - name: 🧹 Free Disk Space
+      - name: Free disk space
         uses: jlumbroso/free-disk-space@main
         with:
           tool-cache: false
-          android: false # Don't remove Android tools since we need them!
+          android: false
           dotnet: true
           haskell: true
           large-packages: true
           docker-images: true
           swap-storage: true
 
-      - name: 📦 Checkout repository
+      - name: Checkout
         uses: actions/checkout@v4
 
-      - name: ⚙️ Setup Node.js
+      # SDK 57 requires Node 22.13 or newer.
+      - name: Setup Node
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
           cache: npm
 
-      - name: ☕ Setup Java
+      - name: Setup Java
         uses: actions/setup-java@v4
         with:
-          distribution: 'temurin'
+          distribution: temurin
           java-version: '17'
-          
-      - name: 📦 Install dependencies
+
+      - name: Install dependencies
         run: npm ci
 
-      - name: 🏗️ Generate Android project (Prebuild)
-        run: npx expo prebuild --platform android
+      # EXPO_PUBLIC_ values are inlined by Metro at bundle time, so they have to
+      # exist before prebuild. Without them the app throws on first render.
+      - name: Write environment
+        run: |
+          {
+            echo "EXPO_PUBLIC_SUPABASE_URL=${{ secrets.EXPO_PUBLIC_SUPABASE_URL }}"
+            echo "EXPO_PUBLIC_SUPABASE_ANON_KEY=${{ secrets.EXPO_PUBLIC_SUPABASE_ANON_KEY }}"
+            echo "EXPO_PUBLIC_API_URL=${{ secrets.EXPO_PUBLIC_API_URL }}"
+          } > .env
 
-      - name: 🚀 Build APK (Release)
+      - name: Verify environment is present
+        run: |
+          for key in EXPO_PUBLIC_SUPABASE_URL EXPO_PUBLIC_SUPABASE_ANON_KEY EXPO_PUBLIC_API_URL; do
+            grep -q "^${key}=." .env || { echo "::error::${key} is empty. Set it in repository secrets."; exit 1; }
+          done
+
+      - name: Typecheck
+        run: npx tsc --noEmit
+
+      - name: Prebuild Android
+        run: npx expo prebuild --platform android --no-install
+
+      - name: Build release APK
         working-directory: android
-        # assembleRelease packages the JavaScript bundle inside the APK so it doesn't need Metro
-        run: ./gradlew assembleRelease
+        run: ./gradlew assembleRelease --no-daemon
 
-      - name: 📤 Upload APK Artifact
+      - name: Report APK size
+        run: |
+          apk=android/app/build/outputs/apk/release/app-release.apk
+          size=$(stat -c%s "$apk")
+          echo "APK $(( size / 1024 / 1024 )) MB ($size bytes)"
+          echo "### APK $(( size / 1024 / 1024 )) MB" >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Upload APK
         uses: actions/upload-artifact@v4
         with:
-          name: app-release-apk
+          name: legalx-release-apk
           path: android/app/build/outputs/apk/release/app-release.apk
-          retention-days: 7
+          retention-days: 14

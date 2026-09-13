@@ -1,41 +1,51 @@
-/**
- * PrimaryButton — Gold fill, ink text.
- *
- * Rules (04_Design_System.md §5.7):
- * - Gold (#D4A91F) fill only for high-intent CTAs: Buy Now, Confirm, Book Consultation.
- * - Text color is ink (#334155), NOT white — WCAG AA contrast on gold.
- * - Gold appears on at most ONE element per screen (04_Design_System §2 hard rule).
- * - Disabled state: border fill + textSecondary text.
- * - Min tap target 44×44px (04_Design_System §4, WCAG).
- */
 import {
   ActivityIndicator,
   Pressable,
   StyleSheet,
   Text,
+  View,
   type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
 
-import { Colors, Radii, Spacing, Typography } from '@theme';
+import { Elevation, M3, Shape, StateLayer, TypeScale } from '@theme';
+
+/**
+ * M3 filled button.
+ *
+ * The pressed state is a state layer — onPrimary at 10% over the container —
+ * rather than a different fill, which is what keeps it consistent across every
+ * variant in the spec.
+ */
+
+type Variant = 'filled' | 'tonal' | 'text';
 
 interface PrimaryButtonProps extends Pick<PressableProps, 'onPress' | 'testID'> {
   label: string;
+  variant?: Variant;
   disabled?: boolean;
   loading?: boolean;
   style?: StyleProp<ViewStyle>;
 }
 
+const FILL: Record<Variant, { bg: string; fg: string }> = {
+  filled: { bg: M3.primary, fg: M3.onPrimary },
+  tonal: { bg: M3.secondaryContainer, fg: M3.onSecondaryContainer },
+  text: { bg: 'transparent', fg: M3.primary },
+};
+
 export function PrimaryButton({
   label,
   onPress,
+  variant = 'filled',
   disabled = false,
   loading = false,
   style,
   testID,
 }: PrimaryButtonProps) {
   const isDisabled = disabled || loading;
+  const { bg, fg } = FILL[variant];
 
   return (
     <Pressable
@@ -47,52 +57,53 @@ export function PrimaryButton({
       accessibilityState={{ disabled: isDisabled, busy: loading }}
       style={({ pressed }) => [
         styles.base,
-        isDisabled ? styles.disabled : styles.active,
+        { backgroundColor: isDisabled ? withAlpha(M3.onSurface, StateLayer.disabledContainer) : bg },
+        variant === 'filled' && !isDisabled && Elevation.level0,
         pressed && !isDisabled && styles.pressed,
         style,
       ]}
     >
-      {loading ? (
-        <ActivityIndicator
-          size="small"
-          color={Colors.ink}
-          accessibilityLabel="Loading"
-        />
-      ) : (
-        <Text style={[styles.label, isDisabled && styles.labelDisabled]}>
-          {label}
-        </Text>
+      {({ pressed }) => (
+        <>
+          {pressed && !isDisabled && (
+            <View style={[styles.layer, { backgroundColor: withAlpha(fg, StateLayer.pressed) }]} />
+          )}
+          {loading ? (
+            <ActivityIndicator size="small" color={fg} accessibilityLabel="Loading" />
+          ) : (
+            <Text
+              numberOfLines={1}
+              style={[
+                TypeScale.labelLarge,
+                { color: isDisabled ? withAlpha(M3.onSurface, StateLayer.disabledContent) : fg },
+              ]}
+            >
+              {label}
+            </Text>
+          )}
+        </>
       )}
     </Pressable>
   );
 }
 
+/** Hex plus an alpha channel — RN accepts #RRGGBBAA. */
+export function withAlpha(hex: string, alpha: number): string {
+  const a = Math.round(Math.max(0, Math.min(1, alpha)) * 255)
+    .toString(16)
+    .padStart(2, '0');
+  return `${hex}${a}`;
+}
+
 const styles = StyleSheet.create({
   base: {
-    minHeight: 44, // WCAG minimum tap target
-    borderRadius: Radii.button,
-    paddingHorizontal: Spacing.xxl,
-    paddingVertical: Spacing.md,
+    minHeight: 48,
+    paddingHorizontal: 24,
+    borderRadius: Shape.full,
     alignItems: 'center',
     justifyContent: 'center',
+    overflow: 'hidden',
   },
-  active: {
-    backgroundColor: Colors.primary,
-  },
-  disabled: {
-    // Disabled: border fill, not gold — prevents accidental gold-on-disabled confusion
-    backgroundColor: Colors.border,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-  label: {
-    ...Typography.body,
-    // Ink on gold for WCAG AA — do NOT use white (04_Design_System §7)
-    color: Colors.ink,
-    fontWeight: '600',
-  },
-  labelDisabled: {
-    color: Colors.textSecondary,
-  },
+  pressed: { opacity: 0.999 },
+  layer: { position: 'absolute', top: 0, right: 0, bottom: 0, left: 0 },
 });

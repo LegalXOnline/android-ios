@@ -1,13 +1,4 @@
-/**
- * AppTextInput — Labelled text input with inline error state.
- *
- * Rules:
- * - Label above, bordered input, error message below (04_Design_System §5, 24_AI_BUILD_GUIDE §24).
- * - Inline field-level validation — never a blocking modal.
- * - Required vs optional fields are visually communicated via label suffix.
- * - Never clears data on failed submit (24_AI_BUILD_GUIDE §24).
- * - Min tap target height 44px.
- */
+import { useState } from 'react';
 import {
   StyleSheet,
   Text,
@@ -18,13 +9,21 @@ import {
   type ViewStyle,
 } from 'react-native';
 
-import { Colors, FontSize, FontWeight, Radii, Spacing, Typography } from '@theme';
+import { M3, Shape, TypeScale } from '@theme';
+
+/**
+ * M3 outlined text field.
+ *
+ * The outline thickens and takes the primary colour on focus, and the error
+ * message replaces the supporting text rather than appearing beside it, so the
+ * field never changes height as it validates.
+ */
 
 interface AppTextInputProps extends Omit<TextInputProps, 'style'> {
   label: string;
-  /** When present, shows a red error message below the input */
   error?: string;
-  /** Appends " (optional)" to the label for non-required fields */
+  /** Shown under the field when there is no error. */
+  supporting?: string;
   optional?: boolean;
   containerStyle?: StyleProp<ViewStyle>;
 }
@@ -32,39 +31,51 @@ interface AppTextInputProps extends Omit<TextInputProps, 'style'> {
 export function AppTextInput({
   label,
   error,
+  supporting,
   optional = false,
   containerStyle,
+  onFocus,
+  onBlur,
   ...textInputProps
 }: AppTextInputProps) {
+  const [focused, setFocused] = useState(false);
   const hasError = Boolean(error);
+  const accent = hasError ? M3.error : focused ? M3.primary : M3.outline;
 
   return (
     <View style={[styles.container, containerStyle]}>
-      {/* Label */}
-      <Text style={styles.label}>
+      <Text style={[TypeScale.labelLarge, { color: accent }]}>
         {label}
-        {optional && (
-          <Text style={styles.optional}> (optional)</Text>
-        )}
+        {optional && <Text style={{ color: M3.onSurfaceVariant }}> (optional)</Text>}
       </Text>
 
-      {/* Input */}
       <TextInput
         {...textInputProps}
-        placeholderTextColor={Colors.textSecondary}
+        onFocus={(e) => {
+          setFocused(true);
+          onFocus?.(e);
+        }}
+        onBlur={(e) => {
+          setFocused(false);
+          onBlur?.(e);
+        }}
+        placeholderTextColor={M3.onSurfaceVariant}
         style={[
           styles.input,
-          hasError && styles.inputError,
+          TypeScale.bodyLarge,
+          { borderColor: accent, borderWidth: focused || hasError ? 2 : 1 },
         ]}
         accessibilityLabel={label}
-        accessibilityHint={error}
+        accessibilityHint={error ?? supporting}
         accessibilityState={{ disabled: textInputProps.editable === false }}
       />
 
-      {/* Inline error — never a modal */}
-      {hasError && (
-        <Text style={styles.errorText} accessibilityRole="alert">
-          {error}
+      {(hasError || supporting) && (
+        <Text
+          style={[TypeScale.bodySmall, { color: hasError ? M3.error : M3.onSurfaceVariant }]}
+          accessibilityRole={hasError ? 'alert' : undefined}
+        >
+          {error ?? supporting}
         </Text>
       )}
     </View>
@@ -72,34 +83,12 @@ export function AppTextInput({
 }
 
 const styles = StyleSheet.create({
-  container: {
-    gap: Spacing.xs,
-  },
-  label: {
-    ...Typography.label,
-    color: Colors.ink,
-  },
-  optional: {
-    color: Colors.textSecondary,
-    fontWeight: FontWeight.regular,
-  },
+  container: { gap: 6 },
   input: {
-    minHeight: 44, // WCAG tap target
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.button,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
-    ...Typography.body,
-    color: Colors.ink,
-    backgroundColor: Colors.surfaceAlt,
-  },
-  inputError: {
-    borderColor: Colors.danger,
-  },
-  errorText: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.danger,
-    fontWeight: FontWeight.regular,
+    minHeight: 56,
+    paddingHorizontal: 16,
+    borderRadius: Shape.extraSmall,
+    color: M3.onSurface,
+    backgroundColor: M3.surface,
   },
 });
