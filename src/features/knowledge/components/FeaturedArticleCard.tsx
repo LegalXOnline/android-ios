@@ -85,7 +85,7 @@ const styles = StyleSheet.create({
   featuredText: {
     fontSize: 10,
     fontWeight: FontWeight.semibold,
-    color: Colors.ink,
+    color: Colors.surfaceAlt,
     letterSpacing: 0.5,
   },
   content: {
