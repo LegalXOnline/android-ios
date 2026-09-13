@@ -11,6 +11,7 @@ import { Stack } from 'expo-router';
 import * as SplashScreen from 'expo-splash-screen';
 import { useEffect } from 'react';
 
+import { AuthGate } from '@providers/AuthGate';
 import { Providers } from '@providers/index';
 
 // Prevent the splash screen from auto-hiding before asset loading is complete.
@@ -26,6 +27,7 @@ export default function RootLayout() {
 
   return (
     <Providers>
+      <AuthGate>
       <Stack screenOptions={{ headerShown: false }}>
         {/* Authenticated tab navigator */}
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
@@ -36,6 +38,7 @@ export default function RootLayout() {
         {/* 404 fallback */}
         <Stack.Screen name="+not-found" />
       </Stack>
+      </AuthGate>
     </Providers>
   );
 }
