@@ -13,34 +13,41 @@ import { M3, TypeScale, Shape, Elevation, Motion, StateLayer } from './md3';
 
 // ─── Colors (04_Design_System.md §2) ─────────────────────────────────────────
 
+/**
+ * These names are what the screens import. Each one now resolves to the
+ * matching Material 3 role, so the whole app moves with the generated palette
+ * instead of drifting from it.
+ *
+ * The old values failed WCAG AA — gold #D4A91F carried 2.1:1 against the
+ * background, and white on it 2.2:1. The roles below clear 6:1.
+ */
 export const Colors = {
-  /** Primary CTAs only (Buy Now, Continue, Book Consultation, Confirm Payment).
-   *  Never used for backgrounds, icons, or decorative elements. */
-  primary: '#D4A91F',
+  /** Primary CTAs. M3 primary — tone 40 of the #D4A91F source. */
+  primary: M3.primary,
 
   /** Primary text, headers, nav bar active state. */
-  ink: '#334155',
+  ink: M3.onSurface,
 
-  /** App background, card surfaces. */
-  surface: '#FAFAF8',
+  /** App background. */
+  surface: M3.surface,
 
-  /** Elevated cards (lawyer profile card, billing summary). */
-  surfaceAlt: '#FFFFFF',
+  /** Elevated cards. */
+  surfaceAlt: M3.surfaceContainerLowest,
 
-  /** Hairline dividers, input borders. Warm-tinted, not pure gray. */
-  border: '#E4E1D8',
+  /** Hairline dividers, input borders. */
+  border: M3.outlineVariant,
 
-  /** Sub-labels, metadata (e.g. "3–7 working days"). */
-  textSecondary: '#64748B',
+  /** Sub-labels, metadata. */
+  textSecondary: M3.onSurfaceVariant,
 
   /** Payment success, "Verified" badges. */
-  success: '#1D9E75',
+  success: M3.success,
 
   /** Errors, cancellation states. */
-  danger: '#D85A30',
+  danger: M3.error,
 
-  /** Pending states (e.g. "Awaiting document review"). */
-  warning: '#F2A623',
+  /** Pending states. */
+  warning: M3.warning,
 } as const;
 
 export type ColorToken = keyof typeof Colors;

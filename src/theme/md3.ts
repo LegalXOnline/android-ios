@@ -207,6 +207,19 @@ export const M3 = {
 
   scrim: '#020000',
   shadow: '#020000',
+
+  // Extended roles. The spec has no success or warning, so these are built the
+  // same way the generated ones are — tone 40 for the colour, 90 and 10 for the
+  // container pair — and kept clear of the gold primary.
+  success: '#146B4F',
+  onSuccess: '#FFFFFF',
+  successContainer: '#A5F2D2',
+  onSuccessContainer: '#002114',
+
+  warning: '#8A5100',
+  onWarning: '#FFFFFF',
+  warningContainer: '#FFDDB6',
+  onWarningContainer: '#2C1600',
 } as const;
 
 /** M3 Expressive type scale. Emphasized weights on display and headline. */
