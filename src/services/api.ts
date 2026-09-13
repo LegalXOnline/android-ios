@@ -58,11 +58,29 @@ export async function api<T>(path: string, options: Options = {}): Promise<T> {
   const data = text ? safeParse(text) : null;
 
   if (!res.ok) {
-    const payload = data as { error?: string; code?: string } | null;
-    throw new ApiError(payload?.error ?? fallbackMessage(res.status), res.status, payload?.code);
+    const payload = data as ErrorPayload | null;
+    const message = firstFieldError(payload) ?? payload?.error ?? fallbackMessage(res.status);
+    throw new ApiError(message, res.status, payload?.code);
   }
 
   return data as T;
+}
+
+interface ErrorPayload {
+  error?: string;
+  code?: string;
+  details?: Record<string, string[]>;
+}
+
+/**
+ * A zod failure answers with "Validation failed" and the real reasons in
+ * details. Showing the first of those is the only version worth reading.
+ */
+function firstFieldError(payload: ErrorPayload | null): string | undefined {
+  for (const messages of Object.values(payload?.details ?? {})) {
+    if (messages?.length) return messages[0];
+  }
+  return undefined;
 }
 
 function safeParse(text: string): unknown {
