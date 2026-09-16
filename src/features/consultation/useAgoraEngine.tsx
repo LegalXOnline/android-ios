@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, View, type ViewProps } from 'react-native';
+import { PermissionsAndroid, Platform, View, type ViewProps } from 'react-native';
 
 import type { AgoraSession } from '@services/consultations.service';
 
@@ -22,6 +22,24 @@ function loadAgora(): Agora | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Camera and microphone, asked for at runtime.
+ *
+ * Declaring them in the manifest only makes them requestable. Without the
+ * grant Agora's capture fails silently — the call still receives the other
+ * side, so it looks like it is working while publishing nothing. That is
+ * exactly how a video call ends up one-way.
+ */
+async function grantCapture(video: boolean): Promise<boolean> {
+  if (Platform.OS !== 'android') return true;
+
+  const wanted = [PermissionsAndroid.PERMISSIONS.RECORD_AUDIO];
+  if (video) wanted.push(PermissionsAndroid.PERMISSIONS.CAMERA);
+
+  const result = await PermissionsAndroid.requestMultiple(wanted);
+  return wanted.every((p) => result[p] === PermissionsAndroid.RESULTS.GRANTED);
 }
 
 interface EngineState {
@@ -63,6 +81,17 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
 
     (async () => {
       try {
+        const allowed = await grantCapture(video);
+        if (cancelled) return;
+        if (!allowed) {
+          setError(
+            video
+              ? 'Camera and microphone access is needed for a video call. Enable them in Settings and rejoin.'
+              : 'Microphone access is needed for a voice call. Enable it in Settings and rejoin.',
+          );
+          return;
+        }
+
         rtc = agora.createAgoraRtcEngine();
         rtc.initialize({
           appId: session.agoraAppId,
@@ -95,11 +124,14 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           },
         });
 
+        rtc.enableAudio();
+        rtc.enableLocalAudio(true);
+
         if (video) {
           rtc.enableVideo();
+          rtc.enableLocalVideo(true);
           rtc.startPreview();
         } else {
-          rtc.enableAudio();
           rtc.disableVideo();
         }
 
