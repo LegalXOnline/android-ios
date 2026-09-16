@@ -16,6 +16,7 @@ import { useHideTabBar } from '@shared/components/navigation/FloatingTabBar';
 import { useAuth } from '@providers/AuthProvider';
 import { getServiceBySlug, type ServiceDetail } from '@services/services.service';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { LX, LXShape, LXType } from '@theme';
 import { useGoBack } from '@shared/hooks/useGoBack';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
@@ -281,6 +282,7 @@ const styles = StyleSheet.create({
   },
   scroll: {
     flex: 1,
+    backgroundColor: LX.bg,
   },
   scrollContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
@@ -289,10 +291,10 @@ const styles = StyleSheet.create({
     gap: Spacing.lg,
   },
   heroCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: LX.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.card,
+    borderColor: LX.border,
+    borderRadius: LXShape.lg,
     alignItems: 'center',
     gap: Spacing.xs,
     padding: Spacing.lg,
@@ -302,9 +304,9 @@ const styles = StyleSheet.create({
     width: 60,
     height: 60,
     borderRadius: 30,
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: LX.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: LX.border,
     alignItems: 'center',
     justifyContent: 'center',
     marginBottom: Spacing.xs,
@@ -334,10 +336,10 @@ const styles = StyleSheet.create({
     marginTop: Spacing.xs,
   },
   pricingCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: LX.surface,
     borderWidth: 1,
     borderColor: Colors.primary,
-    borderRadius: Radii.card,
+    borderRadius: LXShape.lg,
     padding: Spacing.lg,
     gap: Spacing.xs,
     ...Shadows.card,
@@ -387,10 +389,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   infoCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: LX.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.card,
+    borderColor: LX.border,
+    borderRadius: LXShape.lg,
     padding: Spacing.md,
     gap: Spacing.xs,
     ...Shadows.card,
@@ -430,10 +432,10 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   checklistCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: LX.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.card,
+    borderColor: LX.border,
+    borderRadius: LXShape.lg,
     padding: Spacing.md,
     gap: Spacing.sm,
     ...Shadows.card,
@@ -462,10 +464,10 @@ const styles = StyleSheet.create({
     color: Colors.textSecondary,
   },
   stepsCard: {
-    backgroundColor: Colors.surfaceAlt,
+    backgroundColor: LX.surface,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.card,
+    borderColor: LX.border,
+    borderRadius: LXShape.lg,
     padding: Spacing.md,
     gap: Spacing.md,
     ...Shadows.card,

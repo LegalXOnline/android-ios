@@ -20,6 +20,7 @@ import {
 } from '@shared/components/navigation/FloatingTabBar';
 import { SymbolView } from 'expo-symbols';
 import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
+import { LX, LXShape, LXType } from '@theme';
 import { TouchableOpacity, Text } from 'react-native';
 
 import { getServices, type ServiceCard as ServiceCardData } from '@services/services.service';
@@ -258,10 +259,10 @@ const styles = StyleSheet.create({
   banner: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: Colors.surfaceAlt,
-    borderRadius: Radii.card,
+    backgroundColor: LX.surface,
+    borderRadius: LXShape.lg,
     borderWidth: 1,
-    borderColor: Colors.border,
+    borderColor: LX.border,
     paddingVertical: Spacing.md,
     paddingHorizontal: Spacing.sm,
     marginBottom: Spacing.md,
@@ -318,8 +319,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: Spacing.md,
     paddingVertical: Spacing.sm,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.sm,
+    borderColor: LX.border,
+    borderRadius: LXShape.sm,
   },
   filterBtnText: {
     ...Typography.body,
