@@ -4,11 +4,11 @@
     "slug": "legalx-mobile",
     "version": "1.0.0",
     "orientation": "portrait",
-    "icon": "./assets/images/icon.png",
+    "icon": "./assets/images/app-icon.png",
     "scheme": "legalx",
     "userInterfaceStyle": "light",
     "ios": {
-      "icon": "./assets/expo.icon",
+      "icon": "./assets/images/app-icon.png",
       "bundleIdentifier": "com.legalx.mobile",
       "supportsTablet": true,
       "infoPlist": {
@@ -25,10 +25,9 @@
     "android": {
       "package": "com.legalx.mobile",
       "adaptiveIcon": {
-        "backgroundColor": "#FFDF9B",
-        "foregroundImage": "./assets/images/android-icon-foreground.png",
-        "backgroundImage": "./assets/images/android-icon-background.png",
-        "monochromeImage": "./assets/images/android-icon-monochrome.png"
+        "foregroundImage": "./assets/images/adaptive-foreground.png",
+        "backgroundColor": "#C9A227",
+        "monochromeImage": "./assets/images/adaptive-monochrome.png"
       },
       "predictiveBackGestureEnabled": false,
       "versionCode": 1,
@@ -41,20 +40,21 @@
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.POST_NOTIFICATIONS",
         "android.permission.VIBRATE"
-      ]
+      ],
+      "edgeToEdgeEnabled": true
     },
     "web": {
       "output": "static",
-      "favicon": "./assets/images/favicon.png"
+      "favicon": "./assets/images/app-icon.png"
     },
     "plugins": [
       "expo-router",
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#FBF9F6",
-          "image": "./assets/images/splash-icon.png",
-          "imageWidth": 76
+          "backgroundColor": "#FBF7F0",
+          "image": "./assets/images/legalx-logo.png",
+          "imageWidth": 140
         }
       ],
       [
@@ -66,7 +66,8 @@
             "enableBundleCompression": true,
             "buildArchs": [
               "arm64-v8a"
-            ]
+            ],
+            "useLegacyPackaging": true
           }
         }
       ],
@@ -74,9 +75,11 @@
         "expo-notifications",
         {
           "color": "#D4A91F",
-          "defaultChannel": "default"
+          "defaultChannel": "default",
+          "icon": "./assets/images/adaptive-monochrome.png"
         }
-      ]
+      ],
+      "./plugins/withAbiFilters"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -89,6 +92,10 @@
         "projectId": "62c91cd9-f3ca-4cc9-9f9b-c0c733351ee7"
       }
     },
-    "owner": "karolix"
+    "owner": "karolix",
+    "androidNavigationBar": {
+      "barStyle": "dark-content",
+      "backgroundColor": "#00000000"
+    }
   }
 }
