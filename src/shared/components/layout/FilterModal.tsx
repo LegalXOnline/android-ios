@@ -42,7 +42,7 @@ export function FilterModal({ visible, onClose, sections }: FilterModalProps) {
   return (
     <Modal visible={visible} animationType="slide" transparent>
       <View style={styles.overlay}>
-        <View style={[styles.sheet, { paddingBottom: insets.bottom || Spacing.lg }]}>
+        <View style={[styles.sheet, { paddingBottom: insets.bottom + Spacing.lg }]}>
           {/* Header */}
           <View style={styles.header}>
             <Text style={styles.headerTitle}>Filters</Text>

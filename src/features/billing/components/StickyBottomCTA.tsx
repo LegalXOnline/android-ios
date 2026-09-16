@@ -23,7 +23,10 @@ export function StickyBottomCTA({
     <View
       style={[
         styles.stickyBar,
-        { paddingBottom: Math.max(insets.bottom, Spacing.md) },
+        // The inset is what the system reserves for its own bar, not a gap the
+        // button may sit in. Taking the larger of the two put the button inside
+        // that band and under the navigation bar; the padding is added to it.
+        { paddingBottom: insets.bottom + Spacing.md },
       ]}
     >
       <PrimaryButton
