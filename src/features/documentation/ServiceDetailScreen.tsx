@@ -90,6 +90,11 @@ export function ServiceDetailScreen() {
       user_email: user?.email ?? '',
       user_phone: existing.user_phone ?? '',
     });
+    if (service.requiredDocs.length > 0) {
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push(`/documents/${service.slug}` as any);
+      return;
+    }
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push('/billing' as any);
   };

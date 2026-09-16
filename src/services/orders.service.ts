@@ -21,6 +21,8 @@ export interface SubmitApplicationInput {
   serviceTitle: string;
   /** Anything the screens collected — mode, notes, selected plan. */
   formData?: Record<string, unknown>;
+  /** Storage paths of the documents attached on the checklist step. */
+  documents?: { docType: string; path: string; name: string }[];
 }
 
 export interface SubmittedApplication {
@@ -57,6 +59,8 @@ export async function submitApplication(
       serviceSlug: input.serviceSlug,
       formData: {
         ...(input.formData ?? {}),
+        // The admin panel reads these back to open what the client sent.
+        docPaths: input.documents ?? [],
         source: 'mobile',
         paymentStatus: 'awaiting_payment',
       },

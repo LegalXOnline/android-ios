@@ -107,6 +107,7 @@ export function PaymentScreen() {
         email: user?.email ?? order.user_email ?? undefined,
         serviceSlug: order.item_id,
         serviceTitle: order.item_title,
+        documents: order.documents ?? [],
         formData: {
           mode: selectedMethod,
           amountPaise: total * 100,
