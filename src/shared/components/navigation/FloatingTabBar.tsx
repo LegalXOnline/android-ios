@@ -34,12 +34,25 @@ const LABELS: Record<string, string> = {
 export const TAB_BAR_HEIGHT = 60;
 
 /**
+ * Space between the bar and the bottom of the screen.
+ *
+ * The inset is what the system reserves for itself, not a gap the app may sit
+ * in. A gesture handle reports about 16dp and the bar was landing on top of
+ * it — taking the larger of the two put it inside the band rather than above
+ * it. The clearance is added to whatever the system asked for, so three-button
+ * navigation and a gesture handle both end up clear.
+ */
+function bottomClearance(inset: number): number {
+  return inset + 14;
+}
+
+/**
  * Bottom padding a scrolling tab screen needs so its last row clears the bar.
  * The bar floats over the content, so nothing reserves this space for us.
  */
 export function useTabBarInset(): number {
   const insets = useSafeAreaInsets();
-  return TAB_BAR_HEIGHT + Math.max(insets.bottom, 12) + 12;
+  return TAB_BAR_HEIGHT + bottomClearance(insets.bottom) + 12;
 }
 
 /**
@@ -140,7 +153,7 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
     <Animated.View
       style={[
         styles.dock,
-        { paddingBottom: Math.max(insets.bottom, 12) },
+        { paddingBottom: bottomClearance(insets.bottom) },
         offset ? { transform: [{ translateY: offset }] } : null,
       ]}
       pointerEvents="box-none"
