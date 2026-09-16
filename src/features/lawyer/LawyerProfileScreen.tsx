@@ -11,6 +11,8 @@ import {
   ErrorState,
   FaqAccordion,
   SafeScreenWrapper,
+  SkeletonCard,
+  SkeletonList,
   SecondaryButton,
 } from '@shared/components';
 import { useHideTabBar } from '@shared/components/navigation/FloatingTabBar';
@@ -92,6 +94,7 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
   const { user } = useAuth();
   const [lawyer, setLawyer] = useState<LawyerDetailRow | null>(null);
   const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
 
   useEffect(() => {
     let cancelled = false;
@@ -118,16 +121,34 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
     return () => {
       cancelled = true;
     };
-  }, [lawyerId]);
+  }, [lawyerId, attempt]);
+
+  // While the profile is still arriving, show that it is loading. This used to
+  // fall straight through to "not found" because only `lawyer` was checked, so
+  // every open flashed an error for as long as the request took.
+  if (loading) {
+    return (
+      <SafeScreenWrapper edges={['top', 'left', 'right']}>
+        <AppHeader title="Lawyer Profile" showBack onBackPress={goBack} />
+        <View style={styles.loadingWrap}>
+          <SkeletonCard />
+          <SkeletonList count={3} />
+        </View>
+      </SafeScreenWrapper>
+    );
+  }
 
   if (!lawyer) {
     return (
       <SafeScreenWrapper edges={['top', 'left', 'right']}>
         <AppHeader title="Lawyer Profile" showBack onBackPress={goBack} />
         <ErrorState
-          title="Lawyer Profile Not Found"
-          description="The advocate profile you requested could not be located."
-          onRetry={goBack}
+          title="Advocate not found"
+          description="That profile could not be loaded. Check your connection and try again."
+          onRetry={() => {
+            setLoading(true);
+            setAttempt((n) => n + 1);
+          }}
         />
       </SafeScreenWrapper>
     );
@@ -418,6 +439,7 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
 }
 
 const styles = StyleSheet.create({
+  loadingWrap: { padding: Spacing.md, gap: Spacing.md },
   offlineNote: {
     fontSize: FontSize.bodySmall,
     color: Colors.textSecondary,

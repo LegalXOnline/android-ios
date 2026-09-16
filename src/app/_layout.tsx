@@ -33,6 +33,8 @@ export default function RootLayout() {
         <Stack.Screen name="updates" options={{ headerShown: false }} />
         {/* A live consultation — chat, voice or video */}
         <Stack.Screen name="consultation" options={{ headerShown: false }} />
+        <Stack.Screen name="lawyer" options={{ headerShown: false }} />
+        <Stack.Screen name="billing" options={{ headerShown: false }} />
         {/* 404 fallback */}
         <Stack.Screen name="+not-found" />
       </Stack>

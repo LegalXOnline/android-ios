@@ -10,5 +10,5 @@ import { LawyerProfileScreen } from '@features/lawyer/LawyerProfileScreen';
 export default function LawyerProfileRoute() {
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  return <LawyerProfileScreen lawyerId={id || 'lawyer-1'} />;
+  return <LawyerProfileScreen lawyerId={id ?? ''} />;
 }
