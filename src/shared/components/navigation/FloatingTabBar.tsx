@@ -70,8 +70,17 @@ export function TabBarVisibilityProvider({ children }: { children: ReactNode }) 
   return <TabBarVisibility.Provider value={offset}>{children}</TabBarVisibility.Provider>;
 }
 
-/** The distance the bar travels when hidden: its height plus the inset under it. */
-const HIDDEN_OFFSET = TAB_BAR_HEIGHT + 40;
+/**
+ * How far the bar must travel to be completely gone.
+ *
+ * This was a constant, and the dock is not a constant height: it is the bar
+ * plus whatever the system reserves underneath it. On a handset with three
+ * buttons the dock is about 122dp and the constant moved it 100, so a strip
+ * stayed on screen below the navigation bar.
+ */
+function hiddenOffset(inset: number): number {
+  return TAB_BAR_HEIGHT + bottomClearance(inset) + 24;
+}
 
 /**
  * Drives the bar from a scrolling screen.
@@ -81,6 +90,8 @@ const HIDDEN_OFFSET = TAB_BAR_HEIGHT + 40;
  */
 export function useTabBarAutoHide() {
   const offset = useContext(TabBarVisibility);
+  const insets = useSafeAreaInsets();
+  const travel = hiddenOffset(insets.bottom);
 
   return useMemo(() => {
     if (!offset) return { onScroll: undefined };
@@ -106,14 +117,14 @@ export function useTabBarAutoHide() {
         last = y;
 
         // Never hide at the very top: there is nothing underneath to reveal.
-        const shouldHide = delta > 0 && y > HIDDEN_OFFSET;
+        const shouldHide = delta > 0 && y > travel;
         if (shouldHide !== hidden) {
           hidden = shouldHide;
-          settle(shouldHide ? HIDDEN_OFFSET : 0);
+          settle(shouldHide ? travel : 0);
         }
       },
     };
-  }, [offset]);
+  }, [offset, travel]);
 }
 
 /**
@@ -125,12 +136,13 @@ export function useTabBarAutoHide() {
  */
 export function useHideTabBar() {
   const offset = useContext(TabBarVisibility);
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     if (!offset) return;
 
     Animated.timing(offset, {
-      toValue: HIDDEN_OFFSET,
+      toValue: hiddenOffset(insets.bottom),
       duration: 200,
       useNativeDriver: true,
     }).start();
@@ -142,7 +154,7 @@ export function useHideTabBar() {
         useNativeDriver: true,
       }).start();
     };
-  }, [offset]);
+  }, [offset, insets.bottom]);
 }
 
 export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
