@@ -1,7 +1,5 @@
 /**
  * Web tab bar — updated for LegalX navigation structure.
- *
- * Note: LegalX V1 is Android-only (24_AI_BUILD_GUIDE.md §20).
  * This web component is kept only because expo-router may require it
  * for the UI tab fallback. It will not be user-facing in V1.
  */

@@ -5,7 +5,6 @@
  * No additional logic.
  *
  * All screens use this as their root container to respect Android notches
- * and gesture bars (24_AI_BUILD_GUIDE §15 — SafeAreaView consistently).
  */
 import {
   SafeAreaView,

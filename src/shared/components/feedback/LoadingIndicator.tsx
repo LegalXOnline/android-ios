@@ -1,7 +1,5 @@
 /**
  * LoadingIndicator — Branded activity spinner.
- *
- * Rules (24_AI_BUILD_GUIDE §26):
  * - Skeleton loaders are used for content-bearing sections (implemented per-screen).
  * - This spinner is for brief fetches, button loading states, and full-screen loading.
  * - Gold color for brand consistency on loading indicators.

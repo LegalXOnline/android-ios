@@ -2,7 +2,6 @@
  * DocumentSkeletonCard — Shimmer placeholder for a ServiceCard.
  *
  * Used in PopularDocumentsRow during loading state.
- * No animation in Phase 3 — static gray blocks (per 24_AI_BUILD_GUIDE §26:
  * "skeleton loaders for content-bearing sections").
  * Animation can be added in Phase 6 (performance polish) if required.
  */

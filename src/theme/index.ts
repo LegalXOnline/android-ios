@@ -3,7 +3,6 @@
  *
  * Source of truth: 04_Design_System.md
  * Rule: ONE theme only. No light/dark split. No color-scheme detection.
- * See 24_AI_BUILD_GUIDE.md §18 — no theme-switching infrastructure.
  *
  * All styling in the app must import from this file.
  * Never define colors, spacing, or typography inline or per-component.

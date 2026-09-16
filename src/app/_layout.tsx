@@ -3,7 +3,6 @@
  *
  * Rules:
  * - ONE theme only. No DarkTheme / DefaultTheme / color-scheme detection.
- *   See 24_AI_BUILD_GUIDE.md §18.
  * - Wraps the app in all shared providers.
  * - Manages splash screen lifecycle.
  */

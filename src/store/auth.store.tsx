@@ -5,8 +5,6 @@
  * This file defines the auth state shape and a typed context-based stand-in
  * so the rest of the app can import from '@store/auth.store' now
  * and replace with real Zustand when the package is installed.
- *
- * Global state scope: session/auth only — per 24_AI_BUILD_GUIDE.md §16.
  * "Global state limited to session/auth and in-progress order/booking payload."
  *
  * When zustand is installed:

@@ -5,7 +5,6 @@
  * accessibilityLabel is REQUIRED — no icon-only button without a screen-reader label.
  *
  * Icons via expo-symbols SymbolView — uses cross-platform name objects.
- * See 24_AI_BUILD_GUIDE §23: one icon set, used consistently.
  */
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import {

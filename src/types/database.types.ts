@@ -3,7 +3,6 @@
  *
  * Field names match 13_Data_Model_Supabase_Schema.md EXACTLY.
  * Do NOT rename fields — the data model field names are the API contract.
- * See 24_AI_BUILD_GUIDE.md §14.
  */
 
 // ─── profiles (§2.1) ─────────────────────────────────────────────────────────

@@ -2,9 +2,7 @@
  * Avatar — Circular image with initials fallback.
  *
  * Used for: lawyer profile photo (LawyerCard, LawyerProfile), user avatar (Home header).
- * - Uses expo-image for consistent loading/error handling (24_AI_BUILD_GUIDE §22).
  * - Falls back to an initials monogram if no URI or image fails to load.
- * - Never shows a raw broken-image icon (24_AI_BUILD_GUIDE §22).
  */
 import { Image } from 'expo-image';
 import { StyleSheet, Text, View, type StyleProp, type ViewStyle } from 'react-native';

@@ -2,8 +2,6 @@
  * Features directory — feature-first folder structure.
  * Each feature owns its screens, hooks, and components.
  *
- * See 24_AI_BUILD_GUIDE.md §12 — organize by feature/module, not file type.
- *
  * Features:
  *   home/              — SCR-01, SCR-02
  *   documentation/     — SCR-03, SCR-04

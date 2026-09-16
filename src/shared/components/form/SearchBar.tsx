@@ -2,7 +2,6 @@
  * SearchBar — Bordered search row with clear button.
  *
  * Presentation-only: does NOT submit queries itself.
- * The parent screen owns search state and logic (24_AI_BUILD_GUIDE §28).
  *
  * Used on: Home (SCR-01), Lawyer Search/Filters (SCR-08).
  */

@@ -6,7 +6,6 @@
  * - Tapping navigates to detail page (where Buy Now lives).
  * - Card radius 12px, card internal padding 16px (04_Design_System §4).
  * - Card-heavy screens use 20px horizontal padding — handled by parent screen.
- * - Memoized for FlatList performance (24_AI_BUILD_GUIDE §15).
  */
 import { memo } from 'react';
 import {

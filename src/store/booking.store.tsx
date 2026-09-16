@@ -6,7 +6,6 @@
  * Mode Selection → Date → Time → Billing flow.
  *
  * Global state scope: in-progress order/booking payload only.
- * Per 24_AI_BUILD_GUIDE.md §16 — "Global state limited to session/auth
  * and the in-progress order/booking payload."
  *
  * When zustand is installed:

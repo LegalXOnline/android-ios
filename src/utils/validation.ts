@@ -5,7 +5,6 @@
  * Billing user details (SCR-13).
  *
  * Rules:
- * - Inline, field-level validation (24_AI_BUILD_GUIDE §24).
  * - Required vs. optional fields per 12_Module_Profile §3.1
  *   and 11_Module_Billing_Payments §2.1.
  */
