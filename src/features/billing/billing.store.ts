@@ -15,6 +15,8 @@ export interface BillingOrderPayload {
   user_email: string;
   user_phone: string;
   user_address?: string;
+  /** Storage paths of the documents attached for this service. */
+  documents?: { docType: string; path: string; name: string }[];
   coupon_code?: string;
   discount_amount: number;
   tax_amount: number;
@@ -30,6 +32,7 @@ export const DEFAULT_BILLING_ORDER: BillingOrderPayload = {
   user_email: '',
   user_phone: '',
   user_address: '',
+  documents: [],
   coupon_code: '',
   discount_amount: 0,
   tax_amount: 0,

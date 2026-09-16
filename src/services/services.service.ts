@@ -1,4 +1,7 @@
+import { Platform } from 'react-native';
+
 import { api } from './api';
+import { getAccessToken } from './supabase';
 
 /**
  * The document service catalogue.
@@ -70,4 +73,56 @@ export async function getServiceBySlug(slug: string): Promise<ServiceDetail | nu
   } catch {
     return null;
   }
+}
+
+/**
+ * Uploads one document against a service application.
+ *
+ * Not routed through api(): that helper sets a JSON content type, and
+ * multipart needs the runtime to write its own boundary. Web and native
+ * disagree on what FormData accepts for a file, so both are handled.
+ */
+export interface UploadedDoc {
+  path: string;
+  url: string | null;
+  name: string;
+  size: number;
+}
+
+export async function uploadServiceDoc(
+  file: { uri: string; name: string; type: string },
+  opts: { docType: string; serviceTitle?: string },
+): Promise<UploadedDoc> {
+  const token = await getAccessToken();
+  if (!token) throw new Error('Please sign in to attach documents.');
+
+  const body = new FormData();
+  if (Platform.OS === 'web') {
+    const blob = await (await fetch(file.uri)).blob();
+    body.append('file', new File([blob], file.name, { type: file.type || blob.type }));
+  } else {
+    body.append('file', file as unknown as Blob);
+  }
+
+  const params = new URLSearchParams({ docType: opts.docType });
+  if (opts.serviceTitle) params.set('serviceTitle', opts.serviceTitle);
+
+  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
+  const res = await fetch(`${base}/api/upload/client-doc?${params}`, {
+    method: 'POST',
+    headers: { Authorization: `Bearer ${token}` },
+    body,
+  });
+
+  if (!res.ok) {
+    let detail: { error?: string } = {};
+    try {
+      detail = await res.json();
+    } catch {
+      // non-JSON error body
+    }
+    throw new Error(detail.error || 'Upload failed. Please try again.');
+  }
+
+  return res.json() as Promise<UploadedDoc>;
 }
