@@ -56,6 +56,9 @@ export interface AgoraSession {
   counterpartId: string | null;
   counterpartName: string | null;
   feePerMinute: number | null;
+  /** Stamped when the lawyer accepts. Null means nobody answered yet. */
+  startedAt: string | null;
+  endedAt: string | null;
 }
 
 export function getAgoraSession(consultationId: string): Promise<AgoraSession> {

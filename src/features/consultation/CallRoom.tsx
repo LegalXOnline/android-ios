@@ -1,9 +1,13 @@
 import { SymbolView } from 'expo-symbols';
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { endConsultation, type AgoraSession } from '@services/consultations.service';
+import {
+  endConsultation,
+  getAgoraSession,
+  type AgoraSession,
+} from '@services/consultations.service';
 import { LX, LXShape, LXType } from '@theme';
 
 import { useAgoraEngine } from './useAgoraEngine';
@@ -43,23 +47,54 @@ export function CallRoom({ session, onLeave }: { session: AgoraSession; onLeave:
     leave,
   } = useAgoraEngine(session);
 
-  const [seconds, setSeconds] = useState(0);
   const [ending, setEnding] = useState(false);
-  const startedRef = useRef<number | null>(null);
+  const [startedAt, setStartedAt] = useState<string | null>(session.startedAt);
+  const [endedAt, setEndedAt] = useState<string | null>(session.endedAt);
+  const [now, setNow] = useState(() => Date.now());
 
-  // The clock starts when the other side actually arrives, not when this
-  // screen mounts — nobody should be billed for waiting.
+  /**
+   * The billing clock is the server's, not this device's.
+   *
+   * started_at is stamped when the lawyer accepts. Until then there is nothing
+   * to count from, so a client sitting in a room nobody answered is charged
+   * nothing. Running a local timer off the arrival of a remote track meant the
+   * two sides disagreed, and a reconnect restarted the count.
+   */
   useEffect(() => {
-    if (remoteUid === null) return;
-    if (startedRef.current === null) startedRef.current = Date.now();
+    if (startedAt || endedAt) return;
 
-    const tick = setInterval(() => {
-      if (startedRef.current !== null) {
-        setSeconds(Math.floor((Date.now() - startedRef.current) / 1000));
+    let cancelled = false;
+    const poll = setInterval(async () => {
+      try {
+        const fresh = await getAgoraSession(session.consultationId);
+        if (cancelled) return;
+        if (fresh.startedAt) setStartedAt(fresh.startedAt);
+        if (fresh.endedAt) setEndedAt(fresh.endedAt);
+      } catch {
+        // The call is still up; the clock simply has not started yet.
       }
-    }, 1000);
+    }, 4000);
+
+    return () => {
+      cancelled = true;
+      clearInterval(poll);
+    };
+  }, [startedAt, endedAt, session.consultationId]);
+
+  useEffect(() => {
+    if (!startedAt || endedAt) return;
+    const tick = setInterval(() => setNow(Date.now()), 1000);
     return () => clearInterval(tick);
-  }, [remoteUid]);
+  }, [startedAt, endedAt]);
+
+  const seconds = startedAt
+    ? Math.max(
+        0,
+        Math.floor(
+          ((endedAt ? new Date(endedAt).getTime() : now) - new Date(startedAt).getTime()) / 1000,
+        ),
+      )
+    : 0;
 
   const hangUp = useCallback(async () => {
     setEnding(true);
@@ -146,7 +181,7 @@ export function CallRoom({ session, onLeave }: { session: AgoraSession; onLeave:
         )}
 
         <View style={styles.clock}>
-          <Text style={styles.clockText}>{mmss(seconds)}</Text>
+          <Text style={styles.clockText}>{startedAt ? mmss(seconds) : 'Not started'}</Text>
           {cost !== null && <Text style={styles.clockCost}>₹{cost}</Text>}
         </View>
       </View>
