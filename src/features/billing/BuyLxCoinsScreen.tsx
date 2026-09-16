@@ -9,6 +9,8 @@ import {
   SafeScreenWrapper,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
+import { useAuth } from '@providers/AuthProvider';
 
 import { StickyBottomCTA } from './components/StickyBottomCTA';
 import { getBillingOrder, setBillingOrder } from './billing.store';
@@ -30,7 +32,9 @@ const COIN_PACKS: CoinPack[] = [
 ];
 
 export function BuyLxCoinsScreen() {
+  const { user } = useAuth();
   const router = useRouter();
+  const goBack = useGoBack();
   const [selectedPack, setSelectedPack] = useState<CoinPack>(COIN_PACKS[2]);
 
   const handleBuy = () => {
@@ -44,9 +48,9 @@ export function BuyLxCoinsScreen() {
       discount_amount: 0,
       tax_amount: Math.round(selectedPack.price * 0.18),
       total_amount: Math.round(selectedPack.price * 1.18),
-      user_name: existing.user_name || 'Prince Kumar',
-      user_email: existing.user_email || 'prince.kumar@example.com',
-      user_phone: existing.user_phone || '+91 98765 43210',
+      user_name: user ? `${user.firstName} ${user.lastName}`.trim() : existing.user_name,
+      user_email: user?.email ?? existing.user_email,
+      user_phone: existing.user_phone ?? '',
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push('/billing/payment' as any);
@@ -54,7 +58,7 @@ export function BuyLxCoinsScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Buy LX Coins" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Buy LX Coins" showBack onBackPress={goBack} />
 
       <View style={styles.container}>
         <ScrollView

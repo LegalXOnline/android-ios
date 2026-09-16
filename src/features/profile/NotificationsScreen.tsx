@@ -1,6 +1,5 @@
-import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -13,17 +12,53 @@ import {
   type BadgeVariant,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing } from '@theme';
+import { getNotifications } from '@services/profile.service';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 import {
-  PLACEHOLDER_NOTIFICATIONS,
   type NotificationCategory,
   type NotificationPayload,
 } from './profile.placeholder';
 
 export function NotificationsScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const [notifications, setNotifications] =
-    useState<NotificationPayload[]>(PLACEHOLDER_NOTIFICATIONS);
+    useState<NotificationPayload[]>([]);
+
+  // The same rows the website's bell shows, scoped to this account by the
+  // endpoint rather than by anything sent from here.
+  useEffect(() => {
+    let cancelled = false;
+    getNotifications()
+      .then((rows) => {
+        if (cancelled) return;
+        setNotifications(
+          rows.map((n) => ({
+            id: n.id,
+            category: (n.type === 'consultation'
+              ? 'Consultation'
+              : n.type === 'payment'
+                ? 'Payment'
+                : n.type === 'document'
+                  ? 'Order Update'
+                  : 'System') as NotificationCategory,
+            title: n.title,
+            message: n.message,
+            time: new Date(n.created_at).toLocaleString('en-IN', {
+              day: 'numeric',
+              month: 'short',
+              hour: '2-digit',
+              minute: '2-digit',
+            }),
+            isRead: n.is_read,
+          })),
+        );
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [filterTab, setFilterTab] = useState<'All' | 'Unread' | 'Read'>('All');
   const [refreshing, setRefreshing] = useState(false);
 
@@ -113,7 +148,7 @@ export function NotificationsScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Notification Centre" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Notification Centre" showBack onBackPress={goBack} />
 
       <View style={styles.headerBar}>
         <View style={styles.tabsRow}>
@@ -157,7 +192,7 @@ export function NotificationsScreen() {
             description="You're all caught up! Updates regarding consultations and documents will appear here."
             symbol={{ ios: 'bell.slash.fill', android: 'notifications_off', web: 'notifications_off' }}
             actionLabel="Return to Profile"
-            onActionPress={() => router.back()}
+            onActionPress={goBack}
           />
         }
         showsVerticalScrollIndicator={false}

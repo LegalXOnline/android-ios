@@ -8,6 +8,8 @@ import {
 } from '@shared/components';
 import { DEFAULT_TIME_SLOTS, getNextFiveDays } from '@shared/utils/dateTime';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
+import { useAuth } from '@providers/AuthProvider';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
@@ -19,7 +21,9 @@ import {
 const LANGUAGES = ['English', 'Hindi', 'Bengali', 'Marathi', 'Tamil', 'Telugu', 'Kannada'];
 
 export function ConsultationDetailsScreen() {
+  const { user } = useAuth();
   const router = useRouter();
+  const goBack = useGoBack();
   const [storeState, setStoreState] = useVerificationStore();
 
   const dynamicDates = getNextFiveDays();
@@ -59,9 +63,9 @@ export function ConsultationDetailsScreen() {
       discount_amount: 0,
       tax_amount: Math.round(price * 0.18),
       total_amount: Math.round(price * 1.18),
-      user_name: existing.user_name || 'Prince Kumar',
-      user_email: existing.user_email || 'prince.kumar@example.com',
-      user_phone: existing.user_phone || '+91 98765 43210',
+      user_name: user ? `${user.firstName} ${user.lastName}`.trim() : existing.user_name,
+      user_email: user?.email ?? existing.user_email,
+      user_phone: existing.user_phone ?? '',
     });
 
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -73,7 +77,7 @@ export function ConsultationDetailsScreen() {
       <AppHeader
         title="Consultation Details"
         showBack
-        onBackPress={() => router.back()}
+        onBackPress={goBack}
       />
 
       <View style={styles.container}>

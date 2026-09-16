@@ -27,6 +27,19 @@ interface Options extends Omit<RequestInit, 'body'> {
   auth?: boolean;
 }
 
+/**
+ * Absolute URL for a relative API path.
+ *
+ * The API returns photo paths rather than signed URLs so it can re-sign on
+ * every request. An <Image> needs the full address, and on a device there is
+ * no page origin to resolve a leading slash against.
+ */
+export function apiAssetUrl(path: string | null | undefined): string | null {
+  if (!path) return null;
+  if (/^https?:\/\//i.test(path)) return path;
+  return `${BASE}${path}`;
+}
+
 export async function api<T>(path: string, options: Options = {}): Promise<T> {
   const { body, auth = true, headers, ...rest } = options;
 

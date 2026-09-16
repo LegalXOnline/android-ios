@@ -14,12 +14,14 @@ import {
   type BadgeVariant,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
-import { PLACEHOLDER_ORDERS, type OrderPayload, type OrderStatus } from './profile.placeholder';
+import { type OrderPayload, type OrderStatus } from './profile.placeholder';
 
 export function OrdersScreen() {
   const router = useRouter();
-  const [orders] = useState<OrderPayload[]>(PLACEHOLDER_ORDERS);
+  const goBack = useGoBack();
+  const [orders] = useState<OrderPayload[]>([]);
   const [selectedFilter, setSelectedFilter] = useState<'All' | OrderStatus>('All');
   const [selectedOrder, setSelectedOrder] = useState<OrderPayload | null>(null);
   const [toastNotice, setToastNotice] = useState('');
@@ -92,7 +94,7 @@ export function OrdersScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="My Orders" showBack onBackPress={() => router.back()} />
+      <AppHeader title="My Orders" showBack onBackPress={goBack} />
 
       {toastNotice ? (
         <View style={styles.toast}>

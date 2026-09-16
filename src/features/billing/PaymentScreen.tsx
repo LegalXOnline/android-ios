@@ -6,9 +6,11 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   AppHeader,
   SafeScreenWrapper,
-  SecondaryButton,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
+import { useAuth } from '@providers/AuthProvider';
+import { submitApplication } from '@services/orders.service';
 
 import { StickyBottomCTA } from './components/StickyBottomCTA';
 import { getBillingOrder } from './billing.store';
@@ -57,27 +59,73 @@ const PAYMENT_OPTIONS: PaymentOption[] = [
 
 export function PaymentScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
   const order = getBillingOrder();
+  const { user } = useAuth();
   const [selectedMethod, setSelectedMethod] = useState<PaymentMethod>('UPI');
-  const [orderId] = useState('ORD-84920');
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [reference, setReference] = useState<string | null>(null);
 
   const subtotal = order.price;
   const tax = Math.round(subtotal * 0.18);
   const total = subtotal + tax - order.discount_amount;
 
-  const handlePaySuccess = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/billing/success' as any);
-  };
+  /**
+   * Demo checkout.
+   *
+   * Razorpay is not integrated on mobile, so no money moves. What does happen
+   * is real: the lead and the application are created on the backend, which is
+   * what notifies the team. The order is left awaiting payment rather than
+   * marked paid, because it has not been.
+   */
+  const handleSubmitOrder = async () => {
+    const name = (user ? `${user.firstName} ${user.lastName}`.trim() : order.user_name).trim();
+    const phone = (order.user_phone ?? '').replace(/\s+/g, '');
 
-  const handleTriggerFailTest = () => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push('/billing/failed' as any);
+    // Submitting needs a session: the backend's CSRF guard only stands aside
+    // for a Bearer token, so a signed-out POST is rejected outright.
+    if (!user) {
+      setError('Please sign in to submit this order.');
+      return;
+    }
+    if (!name) {
+      setError('We need your name before submitting. Go back and fill it in.');
+      return;
+    }
+    if (!/^(\+91)?[6-9]\d{9}$/.test(phone)) {
+      setError('A valid 10-digit mobile number is required. Go back and add one.');
+      return;
+    }
+
+    setError(null);
+    setSubmitting(true);
+    try {
+      const { applicationId } = await submitApplication({
+        name,
+        phone: phone.replace('+91', ''),
+        email: user?.email ?? order.user_email ?? undefined,
+        serviceSlug: order.item_id,
+        serviceTitle: order.item_title,
+        formData: {
+          mode: selectedMethod,
+          amountPaise: total * 100,
+          orderType: order.order_type,
+        },
+      });
+      setReference(applicationId.slice(0, 8).toUpperCase());
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      router.push('/billing/success' as any);
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Select Payment Method" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Select Payment Method" showBack onBackPress={goBack} />
 
       <View style={styles.container}>
         <ScrollView
@@ -88,8 +136,28 @@ export function PaymentScreen() {
           <View style={styles.bannerCard}>
             <Text style={styles.bannerLabel}>Total Payable Amount</Text>
             <Text style={styles.bannerAmount}>₹{total}</Text>
-            <Text style={styles.bannerSub}>Order ID: {orderId}</Text>
+            {reference && <Text style={styles.bannerSub}>Reference: {reference}</Text>}
           </View>
+
+          <View style={styles.demoBanner}>
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              size={16}
+              tintColor={Colors.primary}
+            />
+            <View style={styles.demoText}>
+              <Text style={styles.demoTitle}>Demo mode — no payment is taken</Text>
+              <Text style={styles.demoBody}>
+                Your order is submitted for review and our team will contact you to arrange payment.
+              </Text>
+            </View>
+          </View>
+
+          {error && (
+            <View style={styles.errorBanner}>
+              <Text style={styles.errorBannerText}>{error}</Text>
+            </View>
+          )}
 
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Payment Options</Text>
@@ -132,18 +200,12 @@ export function PaymentScreen() {
             </View>
           </View>
 
-          <View style={styles.testSection}>
-            <SecondaryButton
-              label="Simulate Payment Failure (Test)"
-              onPress={handleTriggerFailTest}
-              testID="simulate-failed-button"
-            />
-          </View>
         </ScrollView>
 
         <StickyBottomCTA
-          label={`Pay ₹${total}`}
-          onPress={handlePaySuccess}
+          label={submitting ? 'Submitting…' : `Complete Order (Demo) · ₹${total}`}
+          onPress={handleSubmitOrder}
+          disabled={submitting}
           testID="pay-now-button"
         />
       </View>
@@ -152,6 +214,29 @@ export function PaymentScreen() {
 }
 
 const styles = StyleSheet.create({
+  demoBanner: {
+    flexDirection: 'row',
+    gap: Spacing.sm,
+    alignItems: 'flex-start',
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  demoText: { flex: 1, gap: 2 },
+  demoTitle: { fontSize: FontSize.body, fontWeight: FontWeight.semibold, color: Colors.ink },
+  demoBody: { fontSize: FontSize.bodySmall, color: Colors.textSecondary, lineHeight: 18 },
+  errorBanner: {
+    backgroundColor: Colors.surfaceAlt,
+    borderWidth: 1,
+    borderColor: Colors.danger,
+    borderRadius: Radii.card,
+    padding: Spacing.md,
+    marginBottom: Spacing.md,
+  },
+  errorBannerText: { fontSize: FontSize.bodySmall, color: Colors.danger, lineHeight: 18 },
   container: {
     flex: 1,
     position: 'relative',

@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import * as auth from '@services/auth.service';
 import type { AuthUser } from '@services/auth.service';
 import { supabase } from '@services/supabase';
+import { registerForPush, unregisterPush } from '@services/push.service';
 
 interface AuthState {
   user: AuthUser | null;
@@ -21,6 +22,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [user, setUser] = useState<AuthUser | null>(null);
   const [loading, setLoading] = useState(true);
   const mounted = useRef(true);
+  /** This install's push token, so sign-out can drop exactly this device. */
+  const pushToken = useRef<string | null>(null);
 
   useEffect(() => {
     mounted.current = true;
@@ -45,6 +48,19 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     };
   }, []);
 
+  // Registering needs a session, so it waits for one. Failing is silent by
+  // design — push is an enhancement, not a precondition for using the app.
+  useEffect(() => {
+    if (!user) return;
+    let cancelled = false;
+    registerForPush().then((token) => {
+      if (!cancelled) pushToken.current = token;
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [user]);
+
   // Covers sign-out from anywhere and a refresh token that can no longer be
   // spent, both of which have to clear the user rather than leave a stale one.
   useEffect(() => {
@@ -63,6 +79,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, []);
 
   const signOut = useCallback(async () => {
+    // Unregister before the session goes: the call needs a token to
+    // authenticate, and after signOut there is none.
+    if (pushToken.current) {
+      await unregisterPush(pushToken.current);
+      pushToken.current = null;
+    }
     await auth.signOut();
     setUser(null);
   }, []);

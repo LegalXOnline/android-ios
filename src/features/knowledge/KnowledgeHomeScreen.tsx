@@ -1,292 +1,226 @@
-import { useRouter } from 'expo-router';
-import { useMemo, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View, type ListRenderItem } from 'react-native';
-
-import {
-  AppHeader,
-  EmptyState,
-  SafeScreenWrapper,
-  SearchBar,
-  SectionHeader,
-  SkeletonList,
-  FilterModal,
-} from '@shared/components';
 import { SymbolView } from 'expo-symbols';
-import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
-import { TouchableOpacity, Text } from 'react-native';
-
-import { ArticleCard } from './components/ArticleCard';
-import { FeaturedArticleCard } from './components/FeaturedArticleCard';
+import { useState } from 'react';
 import {
-  KNOWLEDGE_CATEGORIES,
-  PLACEHOLDER_ARTICLES,
-  type ArticlePayload,
-  type KnowledgeCategory,
-} from './knowledge.placeholder';
+  Animated,
+  Pressable,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
+} from 'react-native';
+import type { LayoutChangeEvent } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-type ArticleSort = 'newest' | 'popular' | 'read_time';
+import { useTabBarInset } from '@shared/components/navigation/FloatingTabBar';
+import { LX, LXShape, LXType } from '@theme';
+
+import { RightsFeed } from './components/RightsFeed';
+import { UpdatesFeed } from './components/UpdatesFeed';
+
+/**
+ * The two sections the website's Knowledge Center opens on: the daily updates
+ * feed and the Know Your Rights library. Each owns its paging and search, so
+ * switching between them does not discard what the other had loaded.
+ */
+type Section = 'updates' | 'rights';
+
+const SECTIONS: { key: Section; label: string; title: string; hint: string }[] = [
+  {
+    key: 'updates',
+    label: 'Legal updates',
+    title: 'Legal updates',
+    hint: 'Two-minute summaries of what changed, with the source behind each one.',
+  },
+  {
+    key: 'rights',
+    label: 'Know your rights',
+    title: 'Know your rights',
+    hint: 'Plain answers on Indian law, traced to the section and reviewed before publishing.',
+  },
+];
 
 export function KnowledgeHomeScreen() {
-  const router = useRouter();
-  const [searchQuery, setSearchQuery] = useState('');
-  const [selectedCategory, setSelectedCategory] = useState<KnowledgeCategory>('All');
-  const [showBookmarksOnly, setShowBookmarksOnly] = useState(false);
-  const [sortOption, setSortOption] = useState<ArticleSort>('newest');
-  const [articles, setArticles] = useState<ArticlePayload[]>(PLACEHOLDER_ARTICLES);
-  const [refreshing, setRefreshing] = useState(false);
-  const [isLoading] = useState(false);
-  const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
+  const insets = useSafeAreaInsets();
+  const bottomInset = useTabBarInset();
 
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
+  const [section, setSection] = useState<Section>('updates');
+  const [search, setSearch] = useState('');
+
+  // Measured rather than hardcoded: the title block is two or three lines
+  // depending on the section and the device width.
+  const [headerHeight, setHeaderHeight] = useState(0);
+  const [collapseBy, setCollapseBy] = useState(0);
+
+  // Lazy state, not a ref: the value has to survive re-renders, and reading
+  // ref.current during render is what the compiler rightly objects to.
+  const [scrollY] = useState(() => new Animated.Value(0));
+  const [onScroll] = useState(() =>
+    Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], { useNativeDriver: true }),
+  );
+
+  const range = Math.max(collapseBy, 1);
+  // The whole header slides up by exactly the height of the part that goes, so
+  // the controls end up pinned at the top rather than drifting.
+  const translateY = scrollY.interpolate({
+    inputRange: [0, range],
+    outputRange: [0, -range],
+    extrapolate: 'clamp',
+  });
+  const titleOpacity = scrollY.interpolate({
+    inputRange: [0, range * 0.7],
+    outputRange: [1, 0],
+    extrapolate: 'clamp',
+  });
+  const scrolledOpacity = scrollY.interpolate({
+    inputRange: [0, 12],
+    outputRange: [0, 1],
+    extrapolate: 'clamp',
+  });
+
+  const active = SECTIONS.find((s) => s.key === section) ?? SECTIONS[0];
+
+  const switchTo = (next: Section) => {
+    if (next === section) return;
+    setSection(next);
+    setSearch('');
+    scrollY.setValue(0);
   };
 
-  const featuredArticle = useMemo(
-    () => articles.find((a) => a.isFeatured) || articles[0],
-    [articles]
-  );
-
-  const trendingArticles = useMemo(
-    () => articles.filter((a) => a.isTrending),
-    [articles]
-  );
-
-  const filteredArticles = useMemo(() => {
-    let list = articles.filter((art) => {
-      if (showBookmarksOnly && !art.isBookmarked) return false;
-
-      if (selectedCategory !== 'All') {
-        if (art.category.toLowerCase() !== selectedCategory.toLowerCase()) {
-          return false;
-        }
-      }
-
-      if (searchQuery.trim().length > 0) {
-        const q = searchQuery.toLowerCase();
-        const matchTitle = art.title.toLowerCase().includes(q);
-        const matchTeaser = art.teaser.toLowerCase().includes(q);
-        const matchCategory = art.category.toLowerCase().includes(q);
-        const matchAuthor = art.author.toLowerCase().includes(q);
-        return matchTitle || matchTeaser || matchCategory || matchAuthor;
-      }
-
-      return true;
-    });
-
-    if (sortOption === 'newest') {
-      list = [...list].sort((a, b) => new Date(b.publishedDate).getTime() - new Date(a.publishedDate).getTime());
-    } else if (sortOption === 'popular') {
-      list = [...list].sort((a, b) => (b.isTrending ? 1 : 0) - (a.isTrending ? 1 : 0));
-    } else if (sortOption === 'read_time') {
-      const getMin = (r: string) => parseInt(r) || 5;
-      list = [...list].sort((a, b) => getMin(a.readingTime) - getMin(b.readingTime));
-    }
-
-    return list;
-  }, [articles, searchQuery, selectedCategory, showBookmarksOnly, sortOption]);
-
-  const handleArticlePress = (id: string) => {
-    // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    router.push(`/knowledge/${id}` as any);
+  const measureHeader = (e: LayoutChangeEvent) => {
+    const h = Math.round(e.nativeEvent.layout.height);
+    if (h !== headerHeight) setHeaderHeight(h);
   };
 
-  const handleBookmarkToggle = (id: string) => {
-    setArticles((prev) =>
-      prev.map((a) => (a.id === id ? { ...a, isBookmarked: !a.isBookmarked } : a))
-    );
+  const measureTitle = (e: LayoutChangeEvent) => {
+    const h = Math.round(e.nativeEvent.layout.height);
+    if (h !== collapseBy) setCollapseBy(h);
   };
 
-  const renderHeader = () => (
-    <View style={styles.headerContent}>
-      <SearchBar
-        value={searchQuery}
-        onChangeText={setSearchQuery}
-        onClear={() => setSearchQuery('')}
-      />
-
-      <View style={styles.filterRow}>
-        <Text style={styles.resultCount}>
-          <Text style={{ fontWeight: '600', color: Colors.ink }}>{filteredArticles.length}</Text> articles
-        </Text>
-        <TouchableOpacity style={styles.filterBtn} onPress={() => setIsFilterModalVisible(true)}>
-          <SymbolView name={{ ios: 'line.3.horizontal.decrease', android: 'filter_list', web: 'filter_list' }} size={16} tintColor={Colors.textSecondary as any} />
-          <Text style={styles.filterBtnText}>Filters</Text>
-        </TouchableOpacity>
-      </View>
-
-      {!searchQuery && !showBookmarksOnly && selectedCategory === 'All' && featuredArticle && (
-        <View style={styles.sectionBlock}>
-          <FeaturedArticleCard
-            article={featuredArticle}
-            onPress={() => handleArticlePress(featuredArticle.id)}
-          />
-        </View>
-      )}
-
-      {!searchQuery && !showBookmarksOnly && selectedCategory === 'All' && trendingArticles.length > 0 && (
-        <View style={styles.sectionBlock}>
-          <SectionHeader title="Trending Legal Topics" style={styles.sectionHeaderOverride} />
-          <View style={styles.trendingList}>
-            {trendingArticles.map((art) => (
-              <ArticleCard
-                key={`trending-${art.id}`}
-                article={art}
-                onPress={() => handleArticlePress(art.id)}
-                onBookmarkToggle={() => handleBookmarkToggle(art.id)}
-              />
-            ))}
-          </View>
-        </View>
-      )}
-
-      <SectionHeader
-        title={
-          showBookmarksOnly
-            ? `Bookmarked Articles (${filteredArticles.length})`
-            : `Articles (${filteredArticles.length})`
-        }
-        style={styles.sectionHeaderOverride}
-      />
-    </View>
-  );
-
-  const renderItem: ListRenderItem<ArticlePayload> = ({ item }) => (
-    <ArticleCard
-      article={item}
-      onPress={() => handleArticlePress(item.id)}
-      onBookmarkToggle={() => handleBookmarkToggle(item.id)}
-    />
-  );
+  // The list reserves the expanded header. Scrolling slides the header up by
+  // collapseBy, after which content passes under the pinned controls.
+  const feedProps = { search, bottomInset, onScroll, headerHeight };
 
   return (
-    <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Knowledge Centre" />
+    <View style={styles.screen}>
+      {section === 'updates' ? <UpdatesFeed {...feedProps} /> : <RightsFeed {...feedProps} />}
 
-      {isLoading ? (
-        <View style={styles.skeletonPadding}>
-          <SkeletonList count={3} />
-        </View>
-      ) : (
-        <FlatList
-          data={filteredArticles}
-          renderItem={renderItem}
-          keyExtractor={(item) => item.id}
-          ListHeaderComponent={renderHeader}
-          contentContainerStyle={styles.listContent}
-          ItemSeparatorComponent={() => <View style={styles.separator} />}
-          refreshControl={
-            <RefreshControl
-              refreshing={refreshing}
-              onRefresh={onRefresh}
-              tintColor={Colors.primary}
-              colors={[Colors.primary]}
-            />
-          }
-          ListEmptyComponent={
-            <EmptyState
-              title={showBookmarksOnly ? 'No Bookmarks Yet' : 'No Articles Found'}
-              description={
-                showBookmarksOnly
-                  ? 'Save articles by tapping the bookmark icon to read them later.'
-                  : `No articles matched "${searchQuery || selectedCategory}".`
-              }
-              symbol={{ ios: 'bookmark.slash.fill', android: 'article', web: 'article' }}
-              actionLabel="Reset Filters"
-              onActionPress={() => {
-                setSearchQuery('');
-                setSelectedCategory('All');
-                setShowBookmarksOnly(false);
-                setSortOption('newest');
-              }}
-            />
-          }
-          showsVerticalScrollIndicator={false}
-        />
-      )}
-
-      <FilterModal
-        visible={isFilterModalVisible}
-        onClose={() => setIsFilterModalVisible(false)}
-        sections={[
-          {
-            type: 'toggle',
-            isToggled: showBookmarksOnly,
-            onToggle: setShowBookmarksOnly,
-            options: [{ label: 'Bookmarked only', value: 'bookmarks' }],
-          },
-          {
-            title: 'SORT BY',
-            type: 'radio',
-            selectedValue: sortOption,
-            onSelect: (val) => setSortOption(val as ArticleSort),
-            options: [
-              { label: 'Newest', value: 'newest' },
-              { label: 'Most Popular', value: 'popular' },
-            ],
-          },
-          {
-            title: 'CATEGORY',
-            type: 'radio',
-            selectedValue: selectedCategory,
-            onSelect: (val) => setSelectedCategory(val as KnowledgeCategory),
-            options: KNOWLEDGE_CATEGORIES.map((cat) => ({ label: cat, value: cat })),
-          },
+      <Animated.View
+        onLayout={measureHeader}
+        style={[
+          styles.header,
+          { paddingTop: insets.top + 10, transform: [{ translateY }] },
         ]}
-      />
-    </SafeScreenWrapper>
+      >
+        <Animated.View onLayout={measureTitle} style={[styles.titleBlock, { opacity: titleOpacity }]}>
+          <Text style={styles.title}>{active.title}</Text>
+          <Text style={styles.subtitle}>{active.hint}</Text>
+        </Animated.View>
+
+        <View style={styles.segmented}>
+          {SECTIONS.map((s) => {
+            const on = s.key === section;
+            return (
+              <Pressable
+                key={s.key}
+                onPress={() => switchTo(s.key)}
+                accessibilityRole="tab"
+                accessibilityState={{ selected: on }}
+                style={[styles.segment, on && styles.segmentOn]}
+              >
+                <Text style={[styles.segmentText, on && styles.segmentTextOn]}>{s.label}</Text>
+              </Pressable>
+            );
+          })}
+        </View>
+
+        <View style={styles.search}>
+          <SymbolView
+            name={{ ios: 'magnifyingglass', android: 'search', web: 'search' }}
+            size={18}
+            tintColor={LX.inkFaint}
+          />
+          <TextInput
+            value={search}
+            onChangeText={setSearch}
+            placeholder={section === 'updates' ? 'Search updates' : 'Search rights, sections'}
+            placeholderTextColor={LX.inkFaint}
+            style={styles.searchInput}
+            autoCapitalize="none"
+            returnKeyType="search"
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')} hitSlop={10} accessibilityLabel="Clear search">
+              <SymbolView
+                name={{ ios: 'xmark.circle.fill', android: 'cancel', web: 'cancel' }}
+                size={17}
+                tintColor={LX.inkFaint}
+              />
+            </Pressable>
+          )}
+        </View>
+
+        <Animated.View
+          pointerEvents="none"
+          style={[styles.headerEdge, { opacity: scrolledOpacity }]}
+        />
+      </Animated.View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  listContent: {
-    paddingHorizontal: Layout.screenPaddingHWide,
-    paddingBottom: Spacing.xxl + 20,
+  screen: { flex: 1, backgroundColor: LX.bg },
+
+  header: {
+    position: 'absolute',
+    top: 0,
+    left: 0,
+    right: 0,
+    paddingHorizontal: 18,
+    paddingBottom: 12,
+    backgroundColor: LX.bg,
   },
-  skeletonPadding: {
-    paddingHorizontal: Layout.screenPaddingHWide,
-    paddingTop: Spacing.md,
+  headerEdge: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    height: 1,
+    backgroundColor: LX.border,
   },
-  headerContent: {
-    gap: Spacing.lg,
-    paddingVertical: Spacing.md,
-  },
-  filterRow: {
+  titleBlock: { gap: 6, paddingBottom: 12 },
+  title: { ...LXType.display, fontSize: 30, lineHeight: 36, color: LX.ink },
+  subtitle: { ...LXType.bodySmall, color: LX.inkMuted },
+
+  segmented: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
+    gap: 4,
+    padding: 4,
+    borderRadius: LXShape.full,
+    backgroundColor: LX.surfaceSunken,
+  },
+  segment: {
+    flex: 1,
+    height: 40,
+    borderRadius: LXShape.full,
     alignItems: 'center',
-    marginTop: -Spacing.xs,
+    justifyContent: 'center',
   },
-  resultCount: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-  },
-  filterBtn: {
+  segmentOn: { backgroundColor: LX.surface },
+  segmentText: { ...LXType.label, fontSize: 14, color: LX.inkMuted },
+  segmentTextOn: { color: LX.ink },
+
+  search: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: Spacing.sm,
-    paddingHorizontal: Spacing.md,
-    paddingVertical: Spacing.sm,
+    gap: 10,
+    height: 50,
+    marginTop: 8,
+    paddingHorizontal: 16,
+    borderRadius: LXShape.full,
+    backgroundColor: LX.surfaceSunken,
     borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.sm,
+    borderColor: LX.border,
   },
-  filterBtnText: {
-    ...Typography.body,
-    color: Colors.textSecondary,
-  },
-  sectionBlock: {
-    gap: Spacing.sm,
-  },
-  sectionHeaderOverride: {
-    paddingVertical: 0,
-  },
-  trendingList: {
-    gap: Spacing.md,
-  },
-  separator: {
-    height: Spacing.md,
-  },
+  searchInput: { flex: 1, ...LXType.body, color: LX.ink, padding: 0 },
 });

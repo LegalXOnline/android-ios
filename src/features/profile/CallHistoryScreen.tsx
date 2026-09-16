@@ -1,6 +1,6 @@
 import { useRouter, type Href } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -14,17 +14,73 @@ import {
   type BadgeVariant,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { getMyConsultations } from '@services/consultations.service';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 import {
-  PLACEHOLDER_CONSULTATIONS,
   type ConsultationHistoryPayload,
+  type ConsultationMode,
   type ConsultationStatus,
 } from './profile.placeholder';
 
 export function CallHistoryScreen() {
   const router = useRouter();
-  const [consultations] =
-    useState<ConsultationHistoryPayload[]>(PLACEHOLDER_CONSULTATIONS);
+  const goBack = useGoBack();
+  const [consultations, setConsultations] = useState<ConsultationHistoryPayload[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  // Real sessions, from the same endpoint the website reads. The row carries
+  // per-minute fee and timestamps; the amount is what those actually produced.
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const rows = await getMyConsultations();
+        if (cancelled) return;
+        setConsultations(
+          rows.map((c: Awaited<ReturnType<typeof getMyConsultations>>[number]) => {
+            const seconds =
+              c.started_at && c.ended_at
+                ? Math.max(
+                    0,
+                    Math.floor(
+                      (new Date(c.ended_at).getTime() - new Date(c.started_at).getTime()) / 1000,
+                    ),
+                  )
+                : 0;
+            const minutes = seconds > 0 ? Math.ceil(seconds / 60) : 0;
+
+            return {
+              id: c.id,
+              lawyerId: '',
+              lawyerName: c.lawyer_name ?? 'Advocate',
+              lawyerTitle: '',
+              mode: (c.type.charAt(0).toUpperCase() + c.type.slice(1)) as ConsultationMode,
+              date: new Date(c.created_at).toLocaleDateString('en-IN', {
+                day: 'numeric',
+                month: 'short',
+                year: 'numeric',
+              }),
+              duration: minutes > 0 ? `${minutes} min` : '—',
+              amount: minutes * (c.fee_per_minute ?? 0),
+              status: (c.status === 'completed'
+                ? 'Completed'
+                : c.status === 'cancelled'
+                  ? 'Cancelled'
+                  : 'Upcoming') as ConsultationStatus,
+            };
+          }),
+        );
+      } catch {
+        // An empty history is the honest answer to a failed read.
+      } finally {
+        if (!cancelled) setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, []);
   const [filterTab, setFilterTab] = useState<'All' | ConsultationStatus>('All');
   const [selectedConsultation, setSelectedConsultation] =
     useState<ConsultationHistoryPayload | null>(null);
@@ -105,7 +161,7 @@ export function CallHistoryScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="My Consultations" showBack onBackPress={() => router.back()} />
+      <AppHeader title="My Consultations" showBack onBackPress={goBack} />
 
       <View style={styles.filterBar}>
         {(['All', 'Upcoming', 'Completed', 'Cancelled'] as const).map((tab) => (

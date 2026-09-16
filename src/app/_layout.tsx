@@ -28,6 +28,11 @@ export default function RootLayout() {
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         {/* Profile stack — pushed from Home avatar, not a tab */}
         <Stack.Screen name="profile" options={{ headerShown: false }} />
+        {/* Knowledge Centre detail stacks */}
+        <Stack.Screen name="knowledge" options={{ headerShown: false }} />
+        <Stack.Screen name="updates" options={{ headerShown: false }} />
+        {/* A live consultation — chat, voice or video */}
+        <Stack.Screen name="consultation" options={{ headerShown: false }} />
         {/* 404 fallback */}
         <Stack.Screen name="+not-found" />
       </Stack>

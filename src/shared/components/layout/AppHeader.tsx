@@ -23,6 +23,7 @@ import {
 } from 'react-native';
 
 import { Colors, Layout, Spacing, Typography } from '@theme';
+import { useIdentity } from '@providers/ProfileProvider';
 import { Avatar } from '../primitives/Avatar';
 
 interface AppHeaderProps {
@@ -44,6 +45,8 @@ export function AppHeader({
   style,
 }: AppHeaderProps) {
   const router = useRouter();
+
+  const identity = useIdentity();
 
   const handleAvatarPress = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -87,10 +90,10 @@ export function AppHeader({
               style={({ pressed }) => pressed && styles.pressed}
             >
               <Avatar
-                uri={null}
-                initials="U" // Placeholder initials, will update when auth is connected
+                uri={identity.avatarUrl}
+                initials={identity.initials}
                 size="md"
-                accessibilityLabel="Profile"
+                accessibilityLabel={identity.name ? `Profile — ${identity.name}` : 'Profile'}
               />
             </Pressable>
           ) : null

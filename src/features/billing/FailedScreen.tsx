@@ -10,12 +10,14 @@ import {
   SecondaryButton,
 } from '@shared/components';
 import { Colors, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 export function FailedScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
 
   const handleRetry = () => {
-    router.back();
+    goBack();
   };
 
   const handleBackToHome = () => {

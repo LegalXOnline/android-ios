@@ -1,9 +1,10 @@
-import { useRouter, type Href } from 'expo-router';
+import { useFocusEffect, useRouter, type Href } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { useAuth } from '@providers/AuthProvider';
+import { useIdentity, useProfile } from '@providers/ProfileProvider';
 import {
   AppHeader,
   Avatar,
@@ -14,8 +15,9 @@ import {
   SecondaryButton,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
-import { PLACEHOLDER_USER_PROFILE } from './profile.placeholder';
+import { getWalletBalance, toCoins } from '@services/profile.service';
 
 interface MenuItem {
   id: string;
@@ -28,13 +30,37 @@ interface MenuItem {
 
 export function ProfileRootScreen() {
   const router = useRouter();
-  const { user, signOut } = useAuth();
-  const [profile] = useState(PLACEHOLDER_USER_PROFILE);
+  const goBack = useGoBack();
+  const { signOut } = useAuth();
+  // The balance is the wallet's, not a fixture. Null until it arrives, so the
+  // card shows a dash rather than a number nobody has earned.
+  const [coins, setCoins] = useState<number | null>(null);
+  const identity = useIdentity();
+  const { refresh: refreshProfile } = useProfile();
+
+  // Re-read on focus so a photo, a name or a balance changed elsewhere is
+  // current the moment the user comes back.
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      void refreshProfile();
+      getWalletBalance()
+        .then((w) => {
+          if (!cancelled) setCoins(toCoins(w.spendablePaise));
+        })
+        .catch(() => undefined);
+      return () => {
+        cancelled = true;
+      };
+    }, [refreshProfile]),
+  );
+
+  const coinLabel = coins === null ? '—' : String(coins);
   const [showLogoutModal, setShowLogoutModal] = useState(false);
   const [signingOut, setSigningOut] = useState(false);
 
-  const name = user ? `${user.firstName} ${user.lastName}`.trim() : '';
-  const initials = ((user?.firstName?.[0] ?? '') + (user?.lastName?.[0] ?? '')).toUpperCase();
+  const name = identity.name;
+  const initials = identity.initials;
 
   const MENU_ITEMS: MenuItem[] = [
     {
@@ -75,10 +101,10 @@ export function ProfileRootScreen() {
     {
       id: 'wallet',
       title: 'Wallet (LX Coins)',
-      subtitle: `Balance: ${profile.lxCoinsBalance} Coins`,
+      subtitle: `Balance: ${coinLabel} Coins`,
       symbol: { ios: 'creditcard.fill', android: 'account_balance_wallet', web: 'account_balance_wallet' },
       route: '/profile/lx-coins',
-      badge: `${profile.lxCoinsBalance} Coins`,
+      badge: `${coinLabel} Coins`,
     },
     {
       id: 'support',
@@ -120,7 +146,7 @@ export function ProfileRootScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Account & Profile" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Account & Profile" showBack onBackPress={goBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -128,11 +154,11 @@ export function ProfileRootScreen() {
         showsVerticalScrollIndicator={false}
       >
         <View style={styles.headerCard}>
-          <Avatar initials={initials} size="xl" />
+          <Avatar initials={initials} size="xl" uri={identity.avatarUrl} />
 
           <View style={styles.headerInfo}>
             <Text style={styles.userName}>{name}</Text>
-            <Text style={styles.userContact}>{user?.email}</Text>
+            <Text style={styles.userContact}>{identity.email}</Text>
           </View>
 
           <SecondaryButton
@@ -160,7 +186,7 @@ export function ProfileRootScreen() {
             <Text style={styles.coinsSubtitle}>View held & available credits for consultations</Text>
           </View>
 
-          <Text style={styles.coinsValue}>{profile.lxCoinsBalance} LX</Text>
+          <Text style={styles.coinsValue}>{coinLabel} LX</Text>
         </Pressable>
 
         <View style={styles.menuSection}>

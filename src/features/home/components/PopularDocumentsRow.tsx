@@ -22,7 +22,7 @@ import {
 import { SectionHeader, ServiceCard } from '@shared/components';
 import { Layout, Spacing } from '@theme';
 
-import type { HomePlaceholderService } from '../home.placeholder';
+import type { ServiceCard as HomePlaceholderService } from '@services/services.service';
 import { DocumentSkeletonCard } from './skeletons/DocumentSkeletonCard';
 
 interface PopularDocumentsRowProps {

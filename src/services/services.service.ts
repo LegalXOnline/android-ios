@@ -1,17 +1,73 @@
-/**
- * Document services — typed interface stubs.
- *
- * The 8 fixed document services. Public read — direct Supabase client call.
- * See 18_API_Integration_Contracts.md §3, table: services.
- */
-import type { Service } from '@/types/database.types';
+import { api } from './api';
 
-/** Fetch all 8 document services. */
-export async function getAllServices(): Promise<Service[]> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §3, table: services');
+/**
+ * The document service catalogue.
+ *
+ * Served from the backend's mirror of the same registry the website renders,
+ * so a price or a required document changes in one place. Public: the
+ * catalogue has to render before anyone signs in.
+ */
+
+export interface ServiceCard {
+  id: string;
+  slug: string;
+  title: string;
+  tag: string;
+  tagline: string;
+  description: string;
+  shortDesc: string;
+  priceLine: string;
+  priceNumeric: number;
+  duration: string;
+  estimatedTime: string;
+  legalAct: string;
 }
 
-/** Fetch a single service by ID (e.g. "gst-registration"). */
-export async function getServiceById(_serviceId: string): Promise<Service> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §3, table: services');
+export interface ServiceRequiredDoc {
+  id: string;
+  name: string;
+  desc: string;
+  required: boolean;
+  acceptedFormats: string;
+}
+
+export interface ServiceFaq {
+  q: string;
+  a: string;
+}
+
+export interface ServiceStep {
+  title: string;
+  description: string;
+}
+
+export interface ServiceDetail extends ServiceCard {
+  breadcrumb: string;
+  definition: string;
+  definitionQuote: string;
+  definitionSource: string;
+  keyPoints: string[];
+  benefits: string[];
+  features: string[];
+  faqs: ServiceFaq[];
+  requiredDocs: ServiceRequiredDoc[];
+  howItWorks: ServiceStep[];
+  pricing: { drafting: number; govtDuty: string; platformFee: number; total: string };
+}
+
+export async function getServices(): Promise<ServiceCard[]> {
+  const data = await api<{ services: ServiceCard[] }>('/api/services', { auth: false });
+  return data.services;
+}
+
+export async function getServiceBySlug(slug: string): Promise<ServiceDetail | null> {
+  try {
+    const data = await api<{ service: ServiceDetail }>(
+      `/api/services/${encodeURIComponent(slug)}`,
+      { auth: false },
+    );
+    return data.service;
+  } catch {
+    return null;
+  }
 }

@@ -11,12 +11,14 @@ import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import { AppHeader, Badge, SafeScreenWrapper } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { VERIFICATION_PLANS, useVerificationStore, type VerificationPlanId } from './verification.store';
 
 export function VerificationLandingScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
   const [storeState, setStoreState] = useVerificationStore();
 
   const selectedPlanId = storeState.selectedPlan;
@@ -35,7 +37,7 @@ export function VerificationLandingScreen() {
       <AppHeader
         title="Document Verification"
         showBack
-        onBackPress={() => router.back()}
+        onBackPress={goBack}
       />
 
       <View style={styles.container}>

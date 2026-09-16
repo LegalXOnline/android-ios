@@ -10,13 +10,15 @@ import {
   type LawyerCardData,
 } from '@shared/components';
 import { Layout, Spacing } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
-import { PLACEHOLDER_LAWYERS_FULL, type LawyerDetailPayload } from '../lawyer/lawyer.placeholder';
+import { type LawyerDetailPayload } from '../lawyer/lawyer.placeholder';
 
 export function SavedLawyersScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
   const [favouriteLawyers, setFavouriteLawyers] = useState<LawyerDetailPayload[]>(
-    PLACEHOLDER_LAWYERS_FULL.slice(0, 3)
+    []
   );
 
   const handleLawyerPress = useCallback(
@@ -41,7 +43,7 @@ export function SavedLawyersScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Saved Lawyers" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Saved Lawyers" showBack onBackPress={goBack} />
 
       <FlatList
         data={favouriteLawyers}

@@ -23,17 +23,17 @@ export interface BillingOrderPayload {
 
 export const DEFAULT_BILLING_ORDER: BillingOrderPayload = {
   order_type: 'document',
-  item_id: 'service-gst-registration',
-  item_title: 'GST Registration & Audit Package',
-  price: 1499,
-  user_name: 'Prince Kumar',
-  user_email: 'prince.kumar@example.com',
-  user_phone: '+91 98765 43210',
-  user_address: '42, Cyber City, Sector 24, Gurugram, Haryana',
+  item_id: '',
+  item_title: '',
+  price: 0,
+  user_name: '',
+  user_email: '',
+  user_phone: '',
+  user_address: '',
   coupon_code: '',
   discount_amount: 0,
-  tax_amount: 270,
-  total_amount: 1769,
+  tax_amount: 0,
+  total_amount: 0,
 };
 
 let currentBillingOrder: BillingOrderPayload = { ...DEFAULT_BILLING_ORDER };

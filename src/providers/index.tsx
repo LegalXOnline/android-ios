@@ -15,6 +15,7 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 
 import { AuthProvider } from './AuthProvider';
+import { ProfileProvider } from './ProfileProvider';
 import { QueryProvider } from './QueryProvider';
 
 interface ProvidersProps {
@@ -26,7 +27,9 @@ export function Providers({ children }: ProvidersProps) {
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
         <QueryProvider>
-          <AuthProvider>{children}</AuthProvider>
+          <AuthProvider>
+            <ProfileProvider>{children}</ProfileProvider>
+          </AuthProvider>
         </QueryProvider>
       </SafeAreaProvider>
     </GestureHandlerRootView>

@@ -1,5 +1,6 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -10,11 +11,27 @@ import {
   SafeScreenWrapper,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
-import { PLACEHOLDER_USER_PROFILE } from './profile.placeholder';
+import { getWalletBalance, toCoins, type WalletSummary } from '@services/profile.service';
 
 export function LxCoinsScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
+
+  const [wallet, setWallet] = useState<WalletSummary | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    getWalletBalance()
+      .then((w) => {
+        if (!cancelled) setWallet(w);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const handleBuyCoins = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -23,7 +40,7 @@ export function LxCoinsScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="LX Coins Balance" showBack onBackPress={() => router.back()} />
+      <AppHeader title="LX Coins Balance" showBack onBackPress={goBack} />
 
       <ScrollView
         style={styles.scroll}
@@ -40,8 +57,28 @@ export function LxCoinsScreen() {
           </View>
 
           <Text style={styles.balanceTitle}>Available Balance</Text>
-          <Text style={styles.balanceAmount}>{PLACEHOLDER_USER_PROFILE.lxCoinsBalance} Coins</Text>
-          <Text style={styles.balanceSub}>1 LX Coin = ₹1 INR credits towards consultation fees</Text>
+          <Text style={styles.balanceAmount}>
+            {wallet === null ? '—' : `${toCoins(wallet.spendablePaise)} Coins`}
+          </Text>
+          <Text style={styles.balanceSub}>1 LX Coin = ₹1, spent on consultations by the minute</Text>
+
+          {wallet !== null && wallet.freeCreditPaise > 0 && (
+            <Text style={styles.balanceBreakdown}>
+              {toCoins(wallet.freeCreditPaise)} free · {toCoins(wallet.walletPaise)} purchased
+            </Text>
+          )}
+
+          <View style={styles.demoNotice}>
+            <SymbolView
+              name={{ ios: 'lock.fill', android: 'lock', web: 'lock' }}
+              size={14}
+              tintColor={Colors.primary}
+            />
+            <Text style={styles.demoText}>
+              Buying coins is in demo mode — no payment is taken yet. Every account starts with 100
+              free coins.
+            </Text>
+          </View>
 
           <PrimaryButton
             label="Buy LX Coins"
@@ -99,6 +136,23 @@ export function LxCoinsScreen() {
 }
 
 const styles = StyleSheet.create({
+  balanceBreakdown: {
+    fontSize: FontSize.bodySmall,
+    color: Colors.textSecondary,
+    marginTop: 2,
+  },
+  demoNotice: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: Spacing.xs,
+    marginTop: Spacing.md,
+    padding: Spacing.md,
+    borderRadius: Radii.card,
+    borderWidth: 1,
+    borderColor: Colors.primary,
+    backgroundColor: Colors.surfaceAlt,
+  },
+  demoText: { flex: 1, fontSize: FontSize.bodySmall, color: Colors.textSecondary, lineHeight: 18 },
   scroll: {
     flex: 1,
   },

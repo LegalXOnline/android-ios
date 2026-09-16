@@ -10,44 +10,46 @@
  */
 
 import { M3, TypeScale, Shape, Elevation, Motion, StateLayer } from './md3';
+import { LX } from './lx';
 
 // ─── Colors (04_Design_System.md §2) ─────────────────────────────────────────
 
 /**
- * These names are what the screens import. Each one now resolves to the
- * matching Material 3 role, so the whole app moves with the generated palette
- * instead of drifting from it.
+ * These names are what the screens import. Each resolves to a role in ./lx, so
+ * every screen moves with the design system instead of drifting from it.
  *
- * The old values failed WCAG AA — gold #D4A91F carried 2.1:1 against the
- * background, and white on it 2.2:1. The roles below clear 6:1.
+ * primary is the darker gold deliberately: it is used both as text on a light
+ * background and as a fill behind white, and only this tone clears AA in both
+ * directions (4.75:1 and 5.07:1). The bright brand gold is for large filled
+ * controls carrying dark ink — LX.gold with LX.onGold.
  */
 export const Colors = {
-  /** Primary CTAs. M3 primary — tone 40 of the #D4A91F source. */
-  primary: M3.primary,
+  /** Accents, links, and filled controls that carry white text. */
+  primary: LX.goldText,
 
   /** Primary text, headers, nav bar active state. */
-  ink: M3.onSurface,
+  ink: LX.ink,
 
   /** App background. */
-  surface: M3.surface,
+  surface: LX.bg,
 
   /** Elevated cards. */
-  surfaceAlt: M3.surfaceContainerLowest,
+  surfaceAlt: LX.surface,
 
   /** Hairline dividers, input borders. */
-  border: M3.outlineVariant,
+  border: LX.border,
 
   /** Sub-labels, metadata. */
-  textSecondary: M3.onSurfaceVariant,
+  textSecondary: LX.inkMuted,
 
   /** Payment success, "Verified" badges. */
-  success: M3.success,
+  success: LX.success,
 
   /** Errors, cancellation states. */
-  danger: M3.error,
+  danger: LX.danger,
 
   /** Pending states. */
-  warning: M3.warning,
+  warning: '#8A5100',
 } as const;
 
 export type ColorToken = keyof typeof Colors;
@@ -179,3 +181,5 @@ export const theme = {
 } as const;
 
 export type Theme = typeof theme;
+
+export * from './lx';

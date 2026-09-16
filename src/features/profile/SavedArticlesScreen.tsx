@@ -8,14 +8,16 @@ import {
   SafeScreenWrapper,
 } from '@shared/components';
 import { Layout, Spacing } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 import { ArticleCard } from '../knowledge/components/ArticleCard';
-import { PLACEHOLDER_ARTICLES, type ArticlePayload } from '../knowledge/knowledge.placeholder';
+import { type ArticlePayload } from '../knowledge/knowledge.placeholder';
 
 export function SavedArticlesScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
   const [savedArticles, setSavedArticles] = useState<ArticlePayload[]>(
-    PLACEHOLDER_ARTICLES.filter((a) => a.isBookmarked)
+    []
   );
 
   const handleArticlePress = (id: string) => {
@@ -36,7 +38,7 @@ export function SavedArticlesScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Saved Articles" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Saved Articles" showBack onBackPress={goBack} />
 
       <FlatList
         data={savedArticles}

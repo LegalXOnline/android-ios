@@ -1,11 +1,12 @@
 import { useRouter } from 'expo-router';
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, View, Text, TouchableOpacity, type ListRenderItem } from 'react-native';
 
 import {
   AppHeader,
   Chip,
   EmptyState,
+  ErrorState,
   LawyerCard,
   SafeScreenWrapper,
   SearchBar,
@@ -13,27 +14,59 @@ import {
   FilterModal,
   type LawyerCardData,
 } from '@shared/components';
+import {
+  useTabBarAutoHide,
+  useTabBarInset,
+} from '@shared/components/navigation/FloatingTabBar';
 import { SymbolView } from 'expo-symbols';
 import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
 
 import {
-  LAWYER_CATEGORIES,
-  PLACEHOLDER_LAWYERS_FULL,
-  type LawyerCategory,
-  type LawyerDetailPayload,
-} from './lawyer.placeholder';
+  getLawyers,
+  toListRow,
+  type LawyerListRow,
+} from '@services/lawyers.service';
 
 type LawyerSort = 'rating' | 'experience' | 'price_low' | 'price_high';
+type LawyerCategory = string;
 
 export function LawyerListingScreen() {
+  const { onScroll } = useTabBarAutoHide();
+  const bottomInset = useTabBarInset();
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedCategory, setSelectedCategory] = useState<LawyerCategory>('All');
   const [sortOption, setSortOption] = useState<LawyerSort>('rating');
   const [isOnlineOnly, setIsOnlineOnly] = useState(false);
   const [favouriteIds, setFavouriteIds] = useState<Set<string>>(new Set());
+  const [lawyers, setLawyers] = useState<LawyerListRow[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [isLoading] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    let cancelled = false;
+    (async () => {
+      try {
+        const list = await getLawyers();
+        if (!cancelled) {
+          setLawyers(list.map(toListRow));
+          setError(null);
+        }
+      } catch (err) {
+        if (!cancelled) setError((err as Error).message);
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+          setRefreshing(false);
+        }
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [attempt]);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
 
   const onRefresh = () => {
@@ -43,8 +76,15 @@ export function LawyerListingScreen() {
     }, 1000);
   };
 
+  // Derived, so a chip never promises a practice area nobody covers.
+  const categories = useMemo<LawyerCategory[]>(() => {
+    const seen = new Set<string>();
+    for (const l of lawyers) for (const a of l.practice_areas) seen.add(a);
+    return ['All', ...[...seen].sort()];
+  }, [lawyers]);
+
   const filteredLawyers = useMemo(() => {
-    let list = PLACEHOLDER_LAWYERS_FULL.filter((lawyer) => {
+    let list = lawyers.filter((lawyer) => {
       if (isOnlineOnly && !lawyer.is_available_now) return false;
 
       if (selectedCategory !== 'All') {
@@ -60,9 +100,8 @@ export function LawyerListingScreen() {
         const matchesArea = lawyer.practice_areas.some((a) => a.toLowerCase().includes(q));
         const matchesTag = lawyer.expertise_tags.some((t) => t.toLowerCase().includes(q));
         const matchesLang = lawyer.languages.some((l) => l.toLowerCase().includes(q));
-        const matchesCourt = lawyer.courts.some((c) => c.toLowerCase().includes(q));
         const matchesLoc = lawyer.location.toLowerCase().includes(q);
-        return matchesName || matchesArea || matchesTag || matchesLang || matchesCourt || matchesLoc;
+        return matchesName || matchesArea || matchesTag || matchesLang || matchesLoc;
       }
 
       return true;
@@ -79,7 +118,7 @@ export function LawyerListingScreen() {
     }
 
     return list;
-  }, [searchQuery, selectedCategory, sortOption, isOnlineOnly]);
+  }, [lawyers, searchQuery, selectedCategory, sortOption, isOnlineOnly]);
 
   const handleLawyerPress = useCallback(
     (lawyerId: string) => {
@@ -122,7 +161,7 @@ export function LawyerListingScreen() {
     </View>
   );
 
-  const renderItem: ListRenderItem<LawyerDetailPayload> = useCallback(
+  const renderItem: ListRenderItem<LawyerListRow> = useCallback(
     ({ item }) => (
       <LawyerCard
         lawyer={item as LawyerCardData}
@@ -143,18 +182,31 @@ export function LawyerListingScreen() {
         <View style={styles.skeletonPadding}>
           <SkeletonList count={3} />
         </View>
+      ) : error ? (
+        <ErrorState
+          title="Could not load advocates"
+          description={error}
+          onRetry={() => {
+            setIsLoading(true);
+            setError(null);
+            setAttempt((n) => n + 1);
+          }}
+        />
       ) : (
         <FlatList
           data={filteredLawyers}
           renderItem={renderItem}
           keyExtractor={(item) => item.id}
           ListHeaderComponent={renderHeader}
-          contentContainerStyle={styles.listContent}
+          contentContainerStyle={[styles.listContent, { paddingBottom: bottomInset }]}
           ItemSeparatorComponent={() => <View style={styles.separator} />}
           refreshControl={
             <RefreshControl
               refreshing={refreshing}
-              onRefresh={onRefresh}
+              onRefresh={() => {
+                setRefreshing(true);
+                setAttempt((n) => n + 1);
+              }}
               tintColor={Colors.primary}
               colors={[Colors.primary]}
             />
@@ -173,6 +225,8 @@ export function LawyerListingScreen() {
             />
           }
           showsVerticalScrollIndicator={false}
+          onScroll={onScroll}
+          scrollEventThrottle={16}
         />
       )}
 
@@ -202,7 +256,7 @@ export function LawyerListingScreen() {
             type: 'radio',
             selectedValue: selectedCategory,
             onSelect: (val) => setSelectedCategory(val as LawyerCategory),
-            options: LAWYER_CATEGORIES.map((cat) => ({ label: cat, value: cat })),
+            options: categories.map((cat) => ({ label: cat, value: cat })),
           },
         ]}
       />
@@ -213,7 +267,6 @@ export function LawyerListingScreen() {
 const styles = StyleSheet.create({
   listContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
-    paddingBottom: Spacing.xxl + 20,
   },
   skeletonPadding: {
     paddingHorizontal: Layout.screenPaddingHWide,

@@ -1,5 +1,4 @@
 import * as DocumentPicker from 'expo-document-picker';
-import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -17,9 +16,9 @@ import {
   type BadgeVariant,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 import {
-  PLACEHOLDER_TICKETS,
   type SupportTicketPayload,
   type TicketCategory,
   type TicketStatus,
@@ -35,7 +34,7 @@ const TICKET_CATEGORIES: TicketCategory[] = [
 ];
 
 export function SupportScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
 
   const [activeTab, setActiveTab] = useState<'faq' | 'create' | 'my_tickets'>('faq');
 
@@ -44,7 +43,7 @@ export function SupportScreen() {
   const [description, setDescription] = useState('');
   const [attachedFile, setAttachedFile] = useState<string | null>(null);
 
-  const [tickets, setTickets] = useState<SupportTicketPayload[]>(PLACEHOLDER_TICKETS);
+  const [tickets, setTickets] = useState<SupportTicketPayload[]>([]);
   const [ticketFilter, setTicketFilter] = useState<'All' | TicketStatus>('All');
   const [selectedTicket, setSelectedTicket] = useState<SupportTicketPayload | null>(null);
   const [replyText, setReplyText] = useState('');
@@ -158,7 +157,7 @@ export function SupportScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Support & Helpdesk" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Support & Helpdesk" showBack onBackPress={goBack} />
 
       {toastNotice ? (
         <View style={styles.toast}>

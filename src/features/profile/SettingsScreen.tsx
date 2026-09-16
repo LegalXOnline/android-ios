@@ -1,4 +1,3 @@
-import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
@@ -10,9 +9,10 @@ import {
   SafeScreenWrapper,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 export function SettingsScreen() {
-  const router = useRouter();
+  const goBack = useGoBack();
   const [selectedTheme, setSelectedTheme] = useState<'Light' | 'Dark' | 'System'>('Light');
   const [selectedLanguage, setSelectedLanguage] = useState<'English' | 'Hindi' | 'Telugu'>('English');
   const [activeNotice, setActiveNotice] = useState('');
@@ -24,7 +24,7 @@ export function SettingsScreen() {
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Settings" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Settings" showBack onBackPress={goBack} />
 
       <ScrollView
         style={styles.scroll}

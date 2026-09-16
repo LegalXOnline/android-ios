@@ -1,55 +1,67 @@
+import { api } from './api';
+
 /**
- * Orders service — typed interface stubs.
+ * Submitting a document application.
  *
- * create-order calls a Supabase Edge Function (not a direct table write).
- * Order status is ONLY updated by the server webhook — never client-side.
- * See 18_API_Integration_Contracts.md §2, 16_Payments_Razorpay.md §2.
+ * Two calls, matching the web: a lead carries the contact details, and the
+ * application hangs off it with the form data. Creating the application is what
+ * triggers the admin alert on the backend, so this is the call that actually
+ * puts an order in front of a human.
+ *
+ * Payment is not wired on mobile yet. Nothing here pretends otherwise: the
+ * application is created and flagged as awaiting payment, which is the same
+ * state the web leaves it in between submission and checkout.
  */
-import type { Order, Payment, VerificationPackage } from '@/types/database.types';
-import type {
-  CreateOrderInput,
-  CreateOrderResponse,
-  UploadVerificationDocumentInput,
-  UploadVerificationDocumentResponse,
-} from '@/types/api.types';
 
-/**
- * Create an order (document | verification | consultation).
- * Calls the create-order Edge Function — validates coupon server-side,
- * never trusts client-calculated price.
- * See 18_API_Integration_Contracts §2 (create-order).
- */
-export async function createOrder(_input: CreateOrderInput): Promise<CreateOrderResponse> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §2 (create-order)');
+export interface SubmitApplicationInput {
+  name: string;
+  phone: string;
+  email?: string;
+  serviceSlug: string;
+  serviceTitle: string;
+  /** Anything the screens collected — mode, notes, selected plan. */
+  formData?: Record<string, unknown>;
+}
+
+export interface SubmittedApplication {
+  leadId: string;
+  applicationId: string;
 }
 
 /**
- * Fetch a single order by ID to check its payment status.
- * Used to poll/check after Razorpay SDK callback — the SDK callback is
- * informational only; this call confirms actual server-side status.
- * See 16_Payments_Razorpay.md §2.
+ * Both calls send the Bearer token deliberately.
+ *
+ * /api/leads and /api/applications sit behind the CSRF guard, and that guard
+ * only stands aside for a Bearer header — a cookie-less, token-less POST is
+ * rejected with 403. The token is what makes these reachable from the app at
+ * all, so submitting requires a signed-in user.
  */
-export async function getOrderById(_orderId: string): Promise<Order> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §3, table: orders');
-}
+export async function submitApplication(
+  input: SubmitApplicationInput,
+): Promise<SubmittedApplication> {
+  const { leadId } = await api<{ leadId: string }>('/api/leads', {
+    method: 'POST',
+    body: {
+      name: input.name,
+      phone: input.phone,
+      email: input.email,
+      serviceSlug: input.serviceSlug,
+      serviceTitle: input.serviceTitle,
+    },
+  });
 
-/** Fetch all of the current user's orders (for Transactions SCR-21). */
-export async function getUserOrders(_profileId: string): Promise<{ orders: Order[]; payments: Payment[] }> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §3, tables: orders, payments');
-}
+  const { applicationId } = await api<{ applicationId: string }>('/api/applications', {
+    method: 'POST',
+    body: {
+      leadId,
+      serviceSlug: input.serviceSlug,
+      formData: {
+        ...(input.formData ?? {}),
+        source: 'mobile',
+        paymentStatus: 'awaiting_payment',
+      },
+    },
+  });
 
-/**
- * Upload a document for verification.
- * Calls upload-verification-document Edge Function.
- * See 18_API_Integration_Contracts §2 (upload-verification-document).
- */
-export async function uploadVerificationDocument(
-  _input: UploadVerificationDocumentInput,
-): Promise<UploadVerificationDocumentResponse> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §2 (upload-verification-document)');
-}
-
-/** Fetch all verification packages. Filters to requires_human_review = true. */
-export async function getVerificationPackages(): Promise<VerificationPackage[]> {
-  throw new Error('Not implemented — see 18_API_Integration_Contracts §3, table: verification_packages');
+  return { leadId, applicationId };
 }

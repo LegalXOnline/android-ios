@@ -12,6 +12,8 @@ import {
   SecondaryButton,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
+import { useAuth } from '@providers/AuthProvider';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
@@ -36,7 +38,9 @@ const DOCUMENT_TYPES = [
 ];
 
 export function UploadScreen() {
+  const { user } = useAuth();
   const router = useRouter();
+  const goBack = useGoBack();
   const [storeState, setStoreState] = useVerificationStore();
 
   const [selectedType, setSelectedType] = useState(
@@ -46,12 +50,7 @@ export function UploadScreen() {
     storeState.language || 'English'
   );
 
-  const [file, setFile] = useState<SelectedFile | null>({
-    name: 'Property_Sale_Deed_Draft.pdf',
-    size: '2.4 MB',
-    ext: 'PDF',
-    uri: '',
-  });
+  const [file, setFile] = useState<SelectedFile | null>(null);
 
   const [errorMsg, setErrorMsg] = useState('');
 
@@ -123,9 +122,9 @@ export function UploadScreen() {
         discount_amount: 0,
         tax_amount: Math.round(price * 0.18),
         total_amount: Math.round(price * 1.18),
-        user_name: existing.user_name || 'Prince Kumar',
-        user_email: existing.user_email || 'prince.kumar@example.com',
-        user_phone: existing.user_phone || '+91 98765 43210',
+        user_name: user ? `${user.firstName} ${user.lastName}`.trim() : existing.user_name,
+        user_email: user?.email ?? existing.user_email,
+        user_phone: existing.user_phone ?? '',
       });
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router.push('/billing' as any);
@@ -137,7 +136,7 @@ export function UploadScreen() {
       <AppHeader
         title="Upload Document"
         showBack
-        onBackPress={() => router.back()}
+        onBackPress={goBack}
       />
 
       <View style={styles.container}>

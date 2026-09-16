@@ -3,6 +3,7 @@ import { useEffect } from 'react';
 import type { ReactNode } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 
+import { PortalNoticeScreen } from '@features/auth/PortalNoticeScreen';
 import { useAuth } from './AuthProvider';
 
 /**
@@ -22,13 +23,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (!loading) SplashScreen.hideAsync().catch(() => {});
   }, [loading]);
 
+  // Only clients have screens here. Routing a lawyer or an admin into the tabs
+  // is what showed an admin account My Orders and an LX balance.
+  const clientOnly = user?.role === 'client';
+
   useEffect(() => {
-    if (loading) return;
+    if (loading || (user && !clientOnly)) return;
     const inAuth = segments[0] === '(auth)';
 
     if (!user && !inAuth) router.replace('/(auth)/onboarding');
     else if (user && inAuth) router.replace('/(tabs)');
-  }, [user, loading, segments, router]);
+  }, [user, clientOnly, loading, segments, router]);
+
+  if (user && !clientOnly) {
+    return <PortalNoticeScreen role={user.role === 'admin' ? 'admin' : 'lawyer'} />;
+  }
 
   return <>{children}</>;
 }

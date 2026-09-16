@@ -1,6 +1,6 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -8,36 +8,66 @@ import {
   Badge,
   ErrorState,
   FaqAccordion,
+  LoadingIndicator,
   PrimaryButton,
   SafeScreenWrapper,
 } from '@shared/components';
+import { useHideTabBar } from '@shared/components/navigation/FloatingTabBar';
+import { useAuth } from '@providers/AuthProvider';
+import { getServiceBySlug, type ServiceDetail } from '@services/services.service';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
 import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
-import {
-  DOCUMENT_SERVICES,
-  type ChecklistItem,
-  type ServiceDetailPayload,
-} from './documentation.placeholder';
+
 
 export function ServiceDetailScreen() {
+  useHideTabBar();
   const router = useRouter();
+  const goBack = useGoBack();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const [isPlayingVideo, setIsPlayingVideo] = useState(false);
+  const { user } = useAuth();
 
-  const service: ServiceDetailPayload | undefined = DOCUMENT_SERVICES.find(
-    (s) => s.id === id
-  );
+  const [service, setService] = useState<ServiceDetail | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [attempt, setAttempt] = useState(0);
+
+  useEffect(() => {
+    if (!id) return;
+    let cancelled = false;
+    (async () => {
+      const found = await getServiceBySlug(id);
+      if (!cancelled) {
+        setService(found);
+        setLoading(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, attempt]);
+
+  if (loading) {
+    return (
+      <SafeScreenWrapper edges={['top', 'left', 'right']}>
+        <AppHeader title="Service Detail" showBack onBackPress={goBack} />
+        <LoadingIndicator />
+      </SafeScreenWrapper>
+    );
+  }
 
   if (!service) {
     return (
       <SafeScreenWrapper edges={['top', 'left', 'right']}>
-        <AppHeader title="Service Detail" showBack onBackPress={() => router.back()} />
+        <AppHeader title="Service Detail" showBack onBackPress={goBack} />
         <ErrorState
           title="Service Not Found"
-          description="The requested document service could not be found."
-          onRetry={() => router.back()}
+          description="We could not load this service. Check your connection and try again."
+          onRetry={() => {
+            setLoading(true);
+            setAttempt((n) => n + 1);
+          }}
         />
       </SafeScreenWrapper>
     );
@@ -48,30 +78,30 @@ export function ServiceDetailScreen() {
     const price = service.priceNumeric;
     setBillingOrder({
       order_type: 'document',
-      item_id: service.id,
+      item_id: service.slug,
       item_title: service.title,
       price,
       discount_amount: 0,
       tax_amount: Math.round(price * 0.18),
       total_amount: Math.round(price * 1.18),
-      user_name: existing.user_name || 'Prince Kumar',
-      user_email: existing.user_email || 'prince.kumar@example.com',
-      user_phone: existing.user_phone || '+91 98765 43210',
+      // From the session. A blank field is honest; a made-up name is not.
+      user_name: user ? `${user.firstName} ${user.lastName}`.trim() : '',
+      user_email: user?.email ?? '',
+      user_phone: existing.user_phone ?? '',
     });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push('/billing' as any);
   };
 
-  const requiredList: ChecklistItem[] = Array.isArray(service.checklistRequired)
-    ? service.checklistRequired
-    : Object.values(service.checklistRequired).flat();
+  const requiredList = service.requiredDocs.filter((d) => d.required);
+  const optionalList = service.requiredDocs.filter((d) => !d.required);
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
       <AppHeader
         title={service.title}
         showBack
-        onBackPress={() => router.back()}
+        onBackPress={goBack}
       />
 
       <View style={styles.container}>
@@ -115,37 +145,8 @@ export function ServiceDetailScreen() {
           </View>
 
           <View style={styles.sectionBlock}>
-            <Text style={styles.sectionTitle}>Overview Video</Text>
-            <View style={styles.videoCard}>
-              <View style={styles.videoPlayCircle}>
-                <SymbolView
-                  name={{ ios: 'play.fill', android: 'play_arrow', web: 'play_arrow' }}
-                  size={28}
-                  tintColor={Colors.primary}
-                />
-              </View>
-              <Text style={styles.videoTitle}>Watch 2-Min Overview Guide</Text>
-              <Text style={styles.videoSub}>
-                {isPlayingVideo
-                  ? 'Playing explanation video...'
-                  : 'Learn requirements, eligibility, and process timeline'}
-              </Text>
-              <Pressable
-                onPress={() => setIsPlayingVideo(!isPlayingVideo)}
-                accessibilityRole="button"
-                accessibilityLabel={isPlayingVideo ? 'Pause guide video' : 'Play explanation video'}
-                style={styles.videoBtn}
-              >
-                <Text style={styles.videoBtnText}>
-                  {isPlayingVideo ? 'Pause Guide' : 'Play Explanation Video'}
-                </Text>
-              </Pressable>
-            </View>
-          </View>
-
-          <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Key Details & Highlights</Text>
-            {service.keyDetails.map((detail: string, idx: number) => (
+            {service.keyPoints.map((detail: string, idx: number) => (
               <View key={idx} style={styles.featureItem}>
                 <SymbolView
                   name={{ ios: 'checkmark.circle.fill', android: 'check_circle', web: 'check_circle' }}
@@ -160,9 +161,9 @@ export function ServiceDetailScreen() {
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>What is this Service?</Text>
             <View style={styles.infoCard}>
-              <Text style={styles.infoBody}>{service.whatIsBody}</Text>
+              <Text style={styles.infoBody}>{service.definition}</Text>
               <View style={styles.citationBlock}>
-                <Text style={styles.infoCitation}>{service.whatIsCitation}</Text>
+                <Text style={styles.infoCitation}>{service.definitionQuote}</Text>
               </View>
             </View>
           </View>
@@ -195,18 +196,18 @@ export function ServiceDetailScreen() {
                   <View style={styles.checkTextWrap}>
                     <Text style={styles.checkName}>{item.name}</Text>
                     <Text style={styles.checkMeta}>
-                      Formats: {item.formats} • Max Size: {item.maxSize}
+                      {item.acceptedFormats}
                     </Text>
                   </View>
                 </View>
               ))}
 
-              {service.checklistAdditional && service.checklistAdditional.length > 0 && (
+              {optionalList.length > 0 && (
                 <>
                   <Text style={[styles.checklistHeading, { marginTop: Spacing.sm }]}>
                     Additional / Optional Documents
                   </Text>
-                  {service.checklistAdditional.map((item, idx) => (
+                  {optionalList.map((item, idx) => (
                     <View key={idx} style={styles.checkRow}>
                       <SymbolView
                         name={{ ios: 'doc', android: 'description', web: 'description' }}
@@ -215,7 +216,7 @@ export function ServiceDetailScreen() {
                       />
                       <View style={styles.checkTextWrap}>
                         <Text style={styles.checkName}>{item.name}</Text>
-                        <Text style={styles.checkMeta}>{item.formats}</Text>
+                        <Text style={styles.checkMeta}>{item.acceptedFormats}</Text>
                       </View>
                     </View>
                   ))}
@@ -227,7 +228,7 @@ export function ServiceDetailScreen() {
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>{"What's Included in Package"}</Text>
             <View style={styles.infoCard}>
-              {service.whatsIncluded.map((inc: string, idx: number) => (
+              {service.features.map((inc: string, idx: number) => (
                 <View key={idx} style={styles.featureItem}>
                   <SymbolView
                     name={{ ios: 'checkmark.seal.fill', android: 'verified', web: 'verified' }}
@@ -243,7 +244,7 @@ export function ServiceDetailScreen() {
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>How It Works</Text>
             <View style={styles.stepsCard}>
-              {service.howItWorksSteps.map((step, idx) => (
+              {service.howItWorks.map((step, idx) => (
                 <View key={idx} style={styles.stepRow}>
                   <View style={styles.stepNumberBadge}>
                     <Text style={styles.stepNumberText}>{idx + 1}</Text>
@@ -259,7 +260,7 @@ export function ServiceDetailScreen() {
 
           <View style={styles.sectionBlock}>
             <Text style={styles.sectionTitle}>Frequently Asked Questions</Text>
-            <FaqAccordion items={service.faq} />
+            <FaqAccordion items={service.faqs.map((f, i) => ({ id: String(i), question: f.q, answer: f.a }))} />
           </View>
         </ScrollView>
 
@@ -372,44 +373,6 @@ const styles = StyleSheet.create({
     fontSize: 18,
     color: Colors.ink,
     marginBottom: Spacing.xs / 2,
-  },
-  videoCard: {
-    backgroundColor: Colors.surfaceAlt,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    borderRadius: Radii.card,
-    padding: Spacing.lg,
-    alignItems: 'center',
-    gap: Spacing.xs,
-    ...Shadows.card,
-  },
-  videoPlayCircle: {
-    width: 52,
-    height: 52,
-    borderRadius: 26,
-    backgroundColor: Colors.surface,
-    borderWidth: 1,
-    borderColor: Colors.border,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  videoTitle: {
-    fontSize: FontSize.body,
-    fontWeight: FontWeight.semibold,
-    color: Colors.ink,
-  },
-  videoSub: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.textSecondary,
-    textAlign: 'center',
-  },
-  videoBtn: {
-    marginTop: Spacing.xs,
-  },
-  videoBtnText: {
-    fontSize: FontSize.bodySmall,
-    fontWeight: FontWeight.semibold,
-    color: Colors.primary,
   },
   featureItem: {
     flexDirection: 'row',

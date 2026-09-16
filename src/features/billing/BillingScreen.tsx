@@ -1,6 +1,6 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -12,42 +12,75 @@ import {
   SecondaryButton,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
+import { useGoBack } from '@shared/hooks/useGoBack';
+
+import { useAuth } from '@providers/AuthProvider';
+import { getProfile } from '@services/profile.service';
 
 import { StickyBottomCTA } from './components/StickyBottomCTA';
-import { getBillingOrder } from './billing.store';
+import { getBillingOrder, setBillingOrder } from './billing.store';
+
+const NEXT_STEPS = [
+  { title: 'Application submitted', desc: 'Our team is notified the moment you confirm.' },
+  { title: 'We review it', desc: 'Usually within one working day, and we ask if anything is missing.' },
+  { title: 'You get updates', desc: 'By email and in the app, until the filing is done.' },
+];
 
 export function BillingScreen() {
   const router = useRouter();
+  const goBack = useGoBack();
+  const { user } = useAuth();
   const order = getBillingOrder();
 
-  const [coupon, setCoupon] = useState('');
-  const [discount, setDiscount] = useState(0);
-  const [couponApplied, setCouponApplied] = useState(false);
-  const [couponError, setCouponError] = useState('');
+  // Editable, because the order needs a number to reach the client and the
+  // account may not have one yet. The screen used to print an empty Phone row
+  // and then the payment step refused to continue, with nowhere to fix it.
+  const [name, setName] = useState(
+    order.user_name || (user ? `${user.firstName} ${user.lastName}`.trim() : ''),
+  );
+  const [phone, setPhone] = useState(order.user_phone ?? '');
+  const [phoneError, setPhoneError] = useState('');
+  const email = user?.email || order.user_email || '';
+
+  // Prefill from the saved profile so a returning client is not asked twice.
+  useEffect(() => {
+    let cancelled = false;
+    getProfile()
+      .then((p) => {
+        if (cancelled) return;
+        setName((n) => n || `${p.firstName} ${p.lastName}`.trim());
+        setPhone((v) => v || p.phone);
+      })
+      .catch(() => undefined);
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const subtotal = order.price;
   const tax = Math.round(subtotal * 0.18);
-  const total = subtotal + tax - discount;
-
-  const handleApplyCoupon = () => {
-    if (coupon.trim().toUpperCase() === 'LEGALX100') {
-      setDiscount(100);
-      setCouponApplied(true);
-      setCouponError('');
-    } else if (coupon.trim().length > 0) {
-      setCouponError('Invalid coupon code. Try "LEGALX100"');
-      setCouponApplied(false);
-    }
-  };
+  const total = subtotal + tax;
 
   const handleProceedToPayment = () => {
+    const digits = phone.replace(/[\s-]/g, '').replace(/^\+91/, '');
+    if (!name.trim()) {
+      setPhoneError('Enter your full name.');
+      return;
+    }
+    if (!/^[6-9]\d{9}$/.test(digits)) {
+      setPhoneError('Enter a 10-digit Indian mobile number.');
+      return;
+    }
+
+    setPhoneError('');
+    setBillingOrder({ ...order, user_name: name.trim(), user_phone: digits, user_email: email });
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
     router.push('/billing/payment' as any);
   };
 
   return (
     <SafeScreenWrapper edges={['top', 'left', 'right']}>
-      <AppHeader title="Order & Billing" showBack onBackPress={() => router.back()} />
+      <AppHeader title="Order & Billing" showBack onBackPress={goBack} />
 
       <View style={styles.container}>
         <ScrollView
@@ -136,18 +169,37 @@ export function BillingScreen() {
 
             <View style={styles.detailsGrid}>
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Full Name</Text>
-                <Text style={styles.detailVal}>{order.user_name}</Text>
+                <AppTextInput
+                  label="Full Name"
+                  value={name}
+                  onChangeText={(t) => {
+                    setName(t);
+                    setPhoneError('');
+                  }}
+                  autoCapitalize="words"
+                  testID="billing-name-input"
+                />
               </View>
 
               <View style={styles.detailRow}>
-                <Text style={styles.detailLabel}>Phone</Text>
-                <Text style={styles.detailVal}>{order.user_phone}</Text>
+                <AppTextInput
+                  label="Mobile Number"
+                  value={phone}
+                  onChangeText={(t) => {
+                    setPhone(t);
+                    setPhoneError('');
+                  }}
+                  keyboardType="phone-pad"
+                  maxLength={13}
+                  supporting="We call this number to confirm your application"
+                  error={phoneError || undefined}
+                  testID="billing-phone-input"
+                />
               </View>
 
               <View style={styles.detailRow}>
                 <Text style={styles.detailLabel}>Email</Text>
-                <Text style={styles.detailVal}>{order.user_email}</Text>
+                <Text style={styles.detailVal}>{email}</Text>
               </View>
 
               {order.order_type !== 'consultation' && order.order_type !== 'coins' && order.user_address && (
@@ -157,34 +209,6 @@ export function BillingScreen() {
                 </View>
               )}
             </View>
-          </View>
-
-          <View style={styles.card}>
-            <Text style={styles.cardHeaderTitle}>Have a Coupon Code?</Text>
-
-            <View style={styles.couponRow}>
-              <View style={styles.couponInputBox}>
-                <AppTextInput
-                  label="Coupon Code"
-                  value={coupon}
-                  onChangeText={setCoupon}
-                  autoCapitalize="characters"
-                  testID="coupon-input"
-                />
-              </View>
-
-              <SecondaryButton
-                label={couponApplied ? 'Applied' : 'Apply'}
-                onPress={handleApplyCoupon}
-                style={styles.applyBtn}
-                testID="apply-coupon-button"
-              />
-            </View>
-
-            {couponApplied && (
-              <Badge label="★ Coupon LEGALX100 Applied — ₹100 Off" variant="success" />
-            )}
-            {couponError ? <Text style={styles.errorText}>{couponError}</Text> : null}
           </View>
 
           <View style={styles.card}>
@@ -200,19 +224,27 @@ export function BillingScreen() {
               <Text style={styles.priceVal}>+ ₹{tax}</Text>
             </View>
 
-            {discount > 0 && (
-              <View style={styles.priceRow}>
-                <Text style={styles.discountLabel}>Coupon Discount</Text>
-                <Text style={styles.discountVal}>- ₹{discount}</Text>
-              </View>
-            )}
-
             <Divider />
 
             <View style={styles.priceRow}>
               <Text style={styles.totalLabel}>Total Amount Payable</Text>
               <Text style={styles.totalVal}>₹{total}</Text>
             </View>
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.cardHeaderTitle}>What happens next</Text>
+            {NEXT_STEPS.map((step, i) => (
+              <View key={step.title} style={styles.nextRow}>
+                <View style={styles.nextNumber}>
+                  <Text style={styles.nextNumberText}>{i + 1}</Text>
+                </View>
+                <View style={styles.nextText}>
+                  <Text style={styles.nextTitle}>{step.title}</Text>
+                  <Text style={styles.nextDesc}>{step.desc}</Text>
+                </View>
+              </View>
+            ))}
           </View>
         </ScrollView>
 
@@ -227,6 +259,19 @@ export function BillingScreen() {
 }
 
 const styles = StyleSheet.create({
+  nextRow: { flexDirection: 'row', gap: Spacing.sm, marginTop: Spacing.sm },
+  nextNumber: {
+    width: 24,
+    height: 24,
+    borderRadius: 12,
+    backgroundColor: Colors.primary,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  nextNumberText: { color: Colors.surfaceAlt, fontSize: 12, fontWeight: '700' },
+  nextText: { flex: 1, gap: 2 },
+  nextTitle: { fontSize: FontSize.body, fontWeight: FontWeight.semibold, color: Colors.ink },
+  nextDesc: { fontSize: FontSize.bodySmall, color: Colors.textSecondary, lineHeight: 18 },
   container: {
     flex: 1,
     position: 'relative',
@@ -302,23 +347,6 @@ const styles = StyleSheet.create({
     fontWeight: FontWeight.medium,
     color: Colors.ink,
   },
-  couponRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: Spacing.sm,
-  },
-  couponInputBox: {
-    flex: 1,
-  },
-  applyBtn: {
-    minWidth: 90,
-    marginTop: 20,
-  },
-  errorText: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.danger,
-    fontWeight: FontWeight.medium,
-  },
   priceRow: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -332,15 +360,6 @@ const styles = StyleSheet.create({
     fontSize: FontSize.bodySmall,
     fontWeight: FontWeight.semibold,
     color: Colors.ink,
-  },
-  discountLabel: {
-    fontSize: FontSize.bodySmall,
-    color: Colors.success,
-  },
-  discountVal: {
-    fontSize: FontSize.bodySmall,
-    fontWeight: FontWeight.semibold,
-    color: Colors.success,
   },
   totalLabel: {
     fontSize: FontSize.body,

@@ -1,96 +1,28 @@
 import { Tabs } from 'expo-router';
-import { SymbolView } from 'expo-symbols';
-import { Platform } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
-import { Colors } from '@theme';
+import {
+  FloatingTabBar,
+  TabBarVisibilityProvider,
+} from '@shared/components/navigation/FloatingTabBar';
 
 export default function TabsLayout() {
-  const insets = useSafeAreaInsets();
-  
   return (
-    <Tabs
-      screenOptions={{
-        headerShown: false,
-        tabBarActiveTintColor: Colors.primary,
-        tabBarInactiveTintColor: Colors.textSecondary,
-        tabBarStyle: {
-          backgroundColor: Colors.surfaceAlt,
-          borderTopColor: Colors.border,
-          borderTopWidth: 1,
-          paddingBottom: insets.bottom + (Platform.OS === 'android' ? 8 : 0),
-          height: (Platform.OS === 'android' ? 64 : 49) + insets.bottom,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-          fontWeight: '500',
-        },
-      }}
+    <TabBarVisibilityProvider>
+      <Tabs
+      screenOptions={{ headerShown: false }}
+      tabBar={(props) => <FloatingTabBar {...props} />}
     >
-      <Tabs.Screen
-        name="index"
-        options={{
-          title: 'Home',
-          tabBarAccessibilityLabel: 'Home tab',
-          tabBarIcon: ({ color, size }) => (
-            <SymbolView
-              name={{ ios: 'house.fill', android: 'home', web: 'home' }}
-              size={size || 24}
-              tintColor={color}
-            />
-          ),
-        }}
-      />
-
+      <Tabs.Screen name="index" options={{ title: 'Home' }} />
       <Tabs.Screen
         name="documentation"
-        options={{
-          title: 'Documentation',
-          tabBarAccessibilityLabel: 'Documentation tab',
-          tabBarIcon: ({ color, size }) => (
-            <SymbolView
-              name={{ ios: 'doc.text.fill', android: 'description', web: 'description' }}
-              size={size || 24}
-              tintColor={color}
-            />
-          ),
-        }}
+        options={{ title: 'Docs' }}
         listeners={({ navigation }) => ({
-          tabPress: () => {
-            navigation.navigate('documentation', { screen: 'index' });
-          },
+          tabPress: () => navigation.navigate('documentation', { screen: 'index' }),
         })}
       />
-
-      <Tabs.Screen
-        name="knowledge-centre"
-        options={{
-          title: 'Knowledge',
-          tabBarAccessibilityLabel: 'Knowledge Centre tab',
-          tabBarIcon: ({ color, size }) => (
-            <SymbolView
-              name={{ ios: 'book.fill', android: 'menu_book', web: 'menu_book' }}
-              size={size || 24}
-              tintColor={color}
-            />
-          ),
-        }}
-      />
-
-      <Tabs.Screen
-        name="talk-to-lawyer"
-        options={{
-          title: 'Talk to Lawyer',
-          tabBarAccessibilityLabel: 'Talk to Lawyer tab',
-          tabBarIcon: ({ color, size }) => (
-            <SymbolView
-              name={{ ios: 'person.fill', android: 'support_agent', web: 'support_agent' }}
-              size={size || 24}
-              tintColor={color}
-            />
-          ),
-        }}
-      />
-    </Tabs>
+      <Tabs.Screen name="knowledge-centre" options={{ title: 'Learn' }} />
+      <Tabs.Screen name="talk-to-lawyer" options={{ title: 'Lawyers' }} />
+      </Tabs>
+    </TabBarVisibilityProvider>
   );
 }
