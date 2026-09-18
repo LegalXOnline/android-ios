@@ -6,6 +6,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   endConsultation,
   getAgoraSession,
+  reportMediaConnected,
   type AgoraSession,
 } from '@services/consultations.service';
 import { LX, LXShape, LXType } from '@theme';
@@ -60,6 +61,28 @@ export function CallRoom({ session, onLeave }: { session: AgoraSession; onLeave:
    * nothing. Running a local timer off the arrival of a remote track meant the
    * two sides disagreed, and a reconnect restarted the count.
    */
+  /**
+   * Both sides are demonstrably in the channel the moment a remote track
+   * arrives, so that is when the server is told to start charging. Reporting
+   * on our own join would bill a caller sitting alone in a room.
+   */
+  useEffect(() => {
+    if (remoteUid === null || startedAt || endedAt) return;
+
+    let cancelled = false;
+    (async () => {
+      try {
+        const { startedAt: began } = await reportMediaConnected(session.consultationId);
+        if (!cancelled && began) setStartedAt(began);
+      } catch {
+        // The poll below picks it up if this one attempt does not land.
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [remoteUid, startedAt, endedAt, session.consultationId]);
+
   useEffect(() => {
     if (startedAt || endedAt) return;
 

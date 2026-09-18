@@ -66,6 +66,19 @@ export function getAgoraSession(consultationId: string): Promise<AgoraSession> {
   return api<AgoraSession>(`/api/consultations/${consultationId}/agora-token`);
 }
 
+/**
+ * Reports that this device is in the media session with the other side.
+ *
+ * The billing clock starts here rather than when credentials were fetched: a
+ * call that never connects must cost nothing, however long it spent trying.
+ */
+export function reportMediaConnected(consultationId: string) {
+  return api<{ startedAt: string | null }>(
+    `/api/consultations/${consultationId}/media-connected`,
+    { method: 'POST' },
+  );
+}
+
 export function endConsultation(consultationId: string) {
   return api<{ ok?: boolean }>(`/api/consultations/${consultationId}/end`, { method: 'POST' });
 }

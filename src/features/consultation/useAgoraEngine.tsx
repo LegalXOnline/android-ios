@@ -90,6 +90,46 @@ async function grantCapture(video: boolean): Promise<boolean> {
   return wanted.every((p) => result[p] === PermissionsAndroid.RESULTS.GRANTED);
 }
 
+/**
+ * What Agora returns from initialize() and joinChannel().
+ *
+ * Both hand back a code rather than throwing, and both were being discarded —
+ * so a rejected join looked exactly like one still in progress and the screen
+ * sat on "Connecting..." forever with nothing to report. These are the codes
+ * that actually come up in a consultation.
+ */
+function joinFailure(code: number): string | null {
+  if (code === 0) return null;
+  switch (code) {
+    case -2:
+      return 'This call is missing its credentials. Please rejoin from the lawyer\'s profile.';
+    case -3:
+      return 'The call service is still starting up. Please try again in a moment.';
+    case -7:
+      return 'The call service did not start on this device. Reopen the app and try again.';
+    case -17:
+      return 'You are already in this call on this device.';
+    default:
+      return `Could not join the call (error ${code}).`;
+  }
+}
+
+/** Why a connection dropped or was refused, from onConnectionStateChanged. */
+function connectionFailure(reason: number): string | null {
+  switch (reason) {
+    case 3:
+      return 'This call was rejected because the credentials were not accepted.';
+    case 8:
+      return 'This call\'s access token is not valid. Please rejoin.';
+    case 9:
+      return 'This call\'s access token has expired. Please rejoin.';
+    case 10:
+      return 'This account is not allowed to join this call.';
+    default:
+      return null;
+  }
+}
+
 interface EngineState {
   ready: boolean;
   /** True where the native module is not present at all. */
@@ -163,7 +203,7 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
         }
 
         rtc = agora.createAgoraRtcEngine();
-        rtc.initialize({
+        const initCode = rtc.initialize({
           appId: session.agoraAppId,
           // Every participant publishes and subscribes. The role in a
           // communication profile is ignored, which is why the server issues
@@ -171,6 +211,12 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           channelProfile: agora.ChannelProfileType.ChannelProfileCommunication,
         });
         initialised = true;
+
+        if (typeof initCode === 'number' && initCode < 0) {
+          setError(`The call service could not start on this device (error ${initCode}).`);
+          teardown(agora, rtc, null, video);
+          return;
+        }
 
         handler = {
           onJoinChannelSuccess: () => {
@@ -192,6 +238,15 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           },
           onError: (code: number, msg: string) => {
             if (!cancelled) setError(msg || `Call error ${code}`);
+          },
+          // The state machine is where a refused join actually reports itself:
+          // a bad token fails here, not on the joinChannel call.
+          onConnectionStateChanged: (_conn: unknown, state: number, reason: number) => {
+            if (cancelled) return;
+            const failure = connectionFailure(reason);
+            if (failure) setError(failure);
+            // 5 = Failed. Anything else is still negotiating.
+            else if (state === 5) setError('Could not connect to the call. Please rejoin.');
           },
         };
         rtc.registerEventHandler(handler);
@@ -219,13 +274,20 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
         // connect goes silent without either side being told.
         startCallService(video);
 
-        rtc.joinChannel(session.token, session.channelName, session.uid, {
+        const joinCode = rtc.joinChannel(session.token, session.channelName, session.uid, {
           clientRoleType: agora.ClientRoleType.ClientRoleBroadcaster,
           publishMicrophoneTrack: true,
           publishCameraTrack: video,
           autoSubscribeAudio: true,
           autoSubscribeVideo: video,
         });
+
+        const rejected = typeof joinCode === 'number' ? joinFailure(joinCode) : null;
+        if (rejected) {
+          setError(rejected);
+          teardown(agora, rtc, handler, video);
+          return;
+        }
 
         setEngine(rtc);
       } catch (err) {
@@ -240,6 +302,21 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
       if (!releasedRef.current) teardown(agora, rtc, handler, video);
     };
   }, [agora, session.agoraAppId, session.token, session.channelName, session.uid, video]);
+
+  /**
+   * A join that neither succeeds nor reports anything.
+   *
+   * Agora can leave the connection negotiating indefinitely — no success, no
+   * error, no state change — and the screen then shows "Connecting..." until
+   * the caller gives up. Saying so is worth more than spinning forever.
+   */
+  useEffect(() => {
+    if (!agora || joined || error) return;
+    const t = setTimeout(() => {
+      setError('Could not reach the call service. Check your connection and rejoin.');
+    }, 20_000);
+    return () => clearTimeout(t);
+  }, [agora, joined, error]);
 
   const toggleMute = useCallback(() => {
     setMuted((m) => {
