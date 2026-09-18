@@ -1,4 +1,7 @@
+import { Platform } from 'react-native';
+
 import { api } from './api';
+import { getAccessToken } from './supabase';
 
 /**
  * Consultations, against the same endpoints the website uses.
@@ -126,4 +129,80 @@ export interface ConsultationSummary {
 export async function getMyConsultations(): Promise<ConsultationSummary[]> {
   const data = await api<{ consultations: ConsultationSummary[] }>('/api/consultations/my');
   return data.consultations ?? [];
+}
+
+
+/**
+ * Uploads a document into a consultation's transcript.
+ *
+ * Deliberately not the service-checklist uploader: that one writes to the
+ * client-docs bucket under the uploader's own folder, and the endpoint that
+ * hands the file back to the other side only serves `chat/<consultationId>/`
+ * out of the lawyer-docs bucket. A file sent through the wrong one uploads
+ * fine and is then unopenable by the person it was sent to.
+ *
+ * Returns the storage path, never a URL. The bucket is private and the link is
+ * signed on read, so a URL stored in the transcript would stop working.
+ */
+export async function uploadChatAttachment(
+  consultationId: string,
+  file: { uri: string; name: string; type: string },
+): Promise<{ path: string; name: string; size: number }> {
+  const token = await getAccessToken();
+  if (!token) throw new Error('Please sign in to attach documents.');
+
+  const body = new FormData();
+  if (Platform.OS === 'web') {
+    // FormData.append with {uri,name,type} is a React Native extension; on web
+    // it stringifies to [object Object] and the server sees no file.
+    const blob = await (await fetch(file.uri)).blob();
+    body.append('file', new File([blob], file.name, { type: file.type || blob.type }));
+  } else {
+    body.append('file', file as unknown as Blob);
+  }
+
+  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
+  const res = await fetch(
+    `${base}/api/upload/chat-attachment?consultationId=${encodeURIComponent(consultationId)}`,
+    { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body },
+  );
+
+  if (!res.ok) {
+    let detail: { error?: string } = {};
+    try {
+      detail = await res.json();
+    } catch {
+      // non-JSON error body
+    }
+    throw new Error(detail.error ?? 'Could not upload that document.');
+  }
+
+  return res.json() as Promise<{ path: string; name: string; size: number }>;
+}
+
+
+/**
+ * A temporary link to one document from a consultation.
+ *
+ * The endpoint redirects to a signed URL rather than returning one, so the
+ * redirect is read instead of followed: the signed URL is what the viewer can
+ * open, and following it here would download the file into memory for nothing.
+ */
+export async function attachmentUrl(consultationId: string, path: string): Promise<string> {
+  const token = await getAccessToken();
+  if (!token) throw new Error('Please sign in to open this document.');
+
+  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
+  const res = await fetch(
+    `${base}/api/consultations/${consultationId}/attachment?path=${encodeURIComponent(path)}`,
+    { method: 'GET', headers: { Authorization: `Bearer ${token}` }, redirect: 'manual' },
+  );
+
+  const location = res.headers.get('location');
+  if (location) return location;
+
+  // Some runtimes follow the redirect regardless; the final URL is the signed
+  // one and is just as usable.
+  if (res.ok && res.url) return res.url;
+  throw new Error('That document is no longer available.');
 }

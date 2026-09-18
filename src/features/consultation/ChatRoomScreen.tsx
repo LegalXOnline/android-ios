@@ -1,10 +1,10 @@
+import * as DocumentPicker from 'expo-document-picker';
+import * as Linking from 'expo-linking';
 import { SymbolView } from 'expo-symbols';
 import { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
-  KeyboardAvoidingView,
-  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -14,12 +14,15 @@ import {
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import {
+  attachmentUrl,
   endConsultation,
   getMessages,
   sendMessage,
+  uploadChatAttachment,
   type ChatMessage,
 } from '@services/consultations.service';
 import { useGoBack } from '@shared/hooks/useGoBack';
+import { useKeyboardHeight } from '@shared/hooks/useKeyboardHeight';
 import { LX, LXShape, LXType } from '@theme';
 
 /** How often the transcript is re-read. Matches the website's chat room. */
@@ -47,6 +50,7 @@ export function ChatRoomScreen({
   feePerMinute?: number | null;
 }) {
   const insets = useSafeAreaInsets();
+  const keyboard = useKeyboardHeight();
   const goBack = useGoBack('/(tabs)/talk-to-lawyer');
   const listRef = useRef<FlatList<ChatMessage>>(null);
 
@@ -58,6 +62,7 @@ export function ChatRoomScreen({
 
   const [draft, setDraft] = useState('');
   const [sending, setSending] = useState(false);
+  const [attaching, setAttaching] = useState(false);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [now, setNow] = useState(() => Date.now());
@@ -122,6 +127,56 @@ export function ChatRoomScreen({
     }
   }, [draft, sending, ended, consultationId]);
 
+  /**
+   * Sends a document into the conversation.
+   *
+   * Uploaded through the same endpoint the service checklist uses, so the file
+   * lands in the private client-docs bucket and the message carries only its
+   * path — the transcript never holds a URL that would outlive its signature.
+   */
+  const attach = useCallback(async () => {
+    if (attaching || sending || ended) return;
+
+    const res = await DocumentPicker.getDocumentAsync({
+      type: ['image/jpeg', 'image/png', 'application/pdf'],
+      copyToCacheDirectory: true,
+    });
+    if (res.canceled || !res.assets?.[0]) return;
+
+    const asset = res.assets[0];
+    setAttaching(true);
+    setError(null);
+    try {
+      const up = await uploadChatAttachment(consultationId, {
+        uri: asset.uri,
+        name: asset.name || 'document',
+        type: asset.mimeType || 'application/pdf',
+      });
+
+      const { message } = await sendMessage(consultationId, {
+        attachmentUrl: up.path,
+        attachmentName: up.name,
+        attachmentSize: up.size,
+      });
+      setMessages((prev) => (prev.some((m) => m.id === message.id) ? prev : [...prev, message]));
+    } catch (err) {
+      setError((err as Error).message);
+    } finally {
+      setAttaching(false);
+    }
+  }, [attaching, sending, ended, consultationId]);
+
+  const openAttachment = useCallback(
+    async (path: string) => {
+      try {
+        await Linking.openURL(await attachmentUrl(consultationId, path));
+      } catch (err) {
+        setError((err as Error).message);
+      }
+    },
+    [consultationId],
+  );
+
   const finish = async () => {
     try {
       await endConsultation(consultationId);
@@ -168,11 +223,7 @@ export function ChatRoomScreen({
           <ActivityIndicator color={LX.gold} size="large" />
         </View>
       ) : (
-        <KeyboardAvoidingView
-          style={styles.flex}
-          behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-          keyboardVerticalOffset={insets.top + 56}
-        >
+        <View style={[styles.flex, { paddingBottom: keyboard }]}>
           <FlatList
             ref={listRef}
             data={messages}
@@ -193,9 +244,23 @@ export function ChatRoomScreen({
                       <Text style={[styles.msg, mine && styles.msgMine]}>{item.content}</Text>
                     )}
                     {item.attachment_name && (
-                      <Text style={[styles.attachment, mine && styles.msgMine]}>
-                        📎 {item.attachment_name}
-                      </Text>
+                      <Pressable
+                        onPress={() =>
+                          item.attachment_url && void openAttachment(item.attachment_url)
+                        }
+                        accessibilityRole="button"
+                        accessibilityLabel={`Open ${item.attachment_name}`}
+                        style={styles.attachRow}
+                      >
+                        <SymbolView
+                          name={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }}
+                          size={14}
+                          tintColor={mine ? LX.onGold : LX.inkMuted}
+                        />
+                        <Text style={[styles.attachment, mine && styles.msgMine]}>
+                          {item.attachment_name}
+                        </Text>
+                      </Pressable>
                     )}
                     <Text style={[styles.time, mine && styles.timeMine]}>
                       {new Date(item.created_at).toLocaleTimeString('en-IN', {
@@ -216,13 +281,30 @@ export function ChatRoomScreen({
           )}
 
           {ended ? (
-            <View style={[styles.endedBar, { paddingBottom: insets.bottom + 12 }]}>
+            <View style={[styles.endedBar, { paddingBottom: (keyboard ? 0 : insets.bottom) + 12 }]}>
               <Text style={styles.endedText}>
                 This consultation has ended{cost !== null ? ` · ₹${cost} charged` : ''}.
               </Text>
             </View>
           ) : (
-            <View style={[styles.composer, { paddingBottom: insets.bottom + 10 }]}>
+            <View style={[styles.composer, { paddingBottom: (keyboard ? 0 : insets.bottom) + 10 }]}>
+              <Pressable
+                onPress={attach}
+                disabled={attaching || sending}
+                accessibilityRole="button"
+                accessibilityLabel="Attach a document"
+                style={[styles.attach, attaching && styles.sendOff]}
+              >
+                {attaching ? (
+                  <ActivityIndicator color={LX.gold} size="small" />
+                ) : (
+                  <SymbolView
+                    name={{ ios: 'paperclip', android: 'attach_file', web: 'attach_file' }}
+                    size={20}
+                    tintColor={LX.inkMuted}
+                  />
+                )}
+              </Pressable>
               <TextInput
                 value={draft}
                 onChangeText={setDraft}
@@ -248,7 +330,7 @@ export function ChatRoomScreen({
               </Pressable>
             </View>
           )}
-        </KeyboardAvoidingView>
+        </View>
       )}
     </View>
   );
@@ -297,7 +379,15 @@ const styles = StyleSheet.create({
   bubbleTheirs: { backgroundColor: LX.surface, borderWidth: 1, borderColor: LX.border, borderBottomLeftRadius: 4 },
   msg: { ...LXType.body, color: LX.ink },
   msgMine: { color: LX.onGold },
-  attachment: { ...LXType.bodySmall, color: LX.inkMuted },
+  attachment: { ...LXType.bodySmall, color: LX.inkMuted, textDecorationLine: 'underline' },
+  attachRow: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 2 },
+  attach: {
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   time: { ...LXType.bodySmall, fontSize: 10.5, color: LX.inkFaint, alignSelf: 'flex-end' },
   timeMine: { color: LX.onGold, opacity: 0.7 },
 
