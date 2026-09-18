@@ -1,7 +1,6 @@
-import { Platform } from 'react-native';
 
 import { api } from './api';
-import { getAccessToken } from './supabase';
+import { uploadMultipart } from './upload';
 
 /**
  * Wallet balance.
@@ -66,42 +65,12 @@ export async function uploadProfilePhoto(file: {
   name: string;
   type: string;
 }): Promise<string | null> {
-  const token = await getAccessToken();
-  if (!token) throw new Error('Please sign in again.');
-
-  const body = new FormData();
-
-  if (Platform.OS === 'web') {
-    // The browser's FormData has no idea what {uri, name, type} means — it
-    // stringifies the object and the server receives a text field instead of a
-    // file. The picker's URI has to be read into a real Blob first.
-    const blob = await (await fetch(file.uri)).blob();
-    body.append('file', new File([blob], file.name, { type: file.type || blob.type }));
-  } else {
-    // React Native's FormData takes this shape for a file. The cast is what
-    // the DOM typings require, and is the documented usage.
-    body.append('file', file as unknown as Blob);
-  }
-
-  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
-  const res = await fetch(`${base}/api/profile/photo`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body,
-  });
-
-  if (!res.ok) {
-    let detail: { error?: string } = {};
-    try {
-      detail = await res.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new Error(detail.error || 'Could not upload that photo.');
-  }
-
-  const data = (await res.json()) as { avatarUrl: string | null };
-  return data.avatarUrl;
+  const { avatarUrl } = await uploadMultipart<{ avatarUrl: string | null }>(
+    '/api/profile/photo',
+    file,
+    'Could not upload that photo.',
+  );
+  return avatarUrl;
 }
 
 /**

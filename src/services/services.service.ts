@@ -1,7 +1,5 @@
-import { Platform } from 'react-native';
-
 import { api } from './api';
-import { getAccessToken } from './supabase';
+import { uploadMultipart } from './upload';
 
 /**
  * The document service catalogue.
@@ -10,7 +8,6 @@ import { getAccessToken } from './supabase';
  * so a price or a required document changes in one place. Public: the
  * catalogue has to render before anyone signs in.
  */
-
 export interface ServiceCard {
   id: string;
   slug: string;
@@ -25,7 +22,6 @@ export interface ServiceCard {
   estimatedTime: string;
   legalAct: string;
 }
-
 export interface ServiceRequiredDoc {
   id: string;
   name: string;
@@ -33,17 +29,14 @@ export interface ServiceRequiredDoc {
   required: boolean;
   acceptedFormats: string;
 }
-
 export interface ServiceFaq {
   q: string;
   a: string;
 }
-
 export interface ServiceStep {
   title: string;
   description: string;
 }
-
 export interface ServiceDetail extends ServiceCard {
   breadcrumb: string;
   definition: string;
@@ -57,12 +50,10 @@ export interface ServiceDetail extends ServiceCard {
   howItWorks: ServiceStep[];
   pricing: { drafting: number; govtDuty: string; platformFee: number; total: string };
 }
-
 export async function getServices(): Promise<ServiceCard[]> {
   const data = await api<{ services: ServiceCard[] }>('/api/services', { auth: false });
   return data.services;
 }
-
 export async function getServiceBySlug(slug: string): Promise<ServiceDetail | null> {
   try {
     const data = await api<{ service: ServiceDetail }>(
@@ -74,7 +65,6 @@ export async function getServiceBySlug(slug: string): Promise<ServiceDetail | nu
     return null;
   }
 }
-
 /**
  * Uploads one document against a service application.
  *
@@ -88,41 +78,15 @@ export interface UploadedDoc {
   name: string;
   size: number;
 }
-
 export async function uploadServiceDoc(
   file: { uri: string; name: string; type: string },
   opts: { docType: string; serviceTitle?: string },
 ): Promise<UploadedDoc> {
-  const token = await getAccessToken();
-  if (!token) throw new Error('Please sign in to attach documents.');
-
-  const body = new FormData();
-  if (Platform.OS === 'web') {
-    const blob = await (await fetch(file.uri)).blob();
-    body.append('file', new File([blob], file.name, { type: file.type || blob.type }));
-  } else {
-    body.append('file', file as unknown as Blob);
-  }
-
   const params = new URLSearchParams({ docType: opts.docType });
   if (opts.serviceTitle) params.set('serviceTitle', opts.serviceTitle);
-
-  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
-  const res = await fetch(`${base}/api/upload/client-doc?${params}`, {
-    method: 'POST',
-    headers: { Authorization: `Bearer ${token}` },
-    body,
-  });
-
-  if (!res.ok) {
-    let detail: { error?: string } = {};
-    try {
-      detail = await res.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new Error(detail.error || 'Upload failed. Please try again.');
-  }
-
-  return res.json() as Promise<UploadedDoc>;
+  return uploadMultipart<UploadedDoc>(
+    `/api/upload/client-doc?${params}`,
+    file,
+    'Could not upload that document.',
+  );
 }

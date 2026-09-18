@@ -1,7 +1,6 @@
-import { Platform } from 'react-native';
-
 import { api } from './api';
 import { getAccessToken } from './supabase';
+import { uploadMultipart } from './upload';
 
 /**
  * Consultations, against the same endpoints the website uses.
@@ -148,36 +147,11 @@ export async function uploadChatAttachment(
   consultationId: string,
   file: { uri: string; name: string; type: string },
 ): Promise<{ path: string; name: string; size: number }> {
-  const token = await getAccessToken();
-  if (!token) throw new Error('Please sign in to attach documents.');
-
-  const body = new FormData();
-  if (Platform.OS === 'web') {
-    // FormData.append with {uri,name,type} is a React Native extension; on web
-    // it stringifies to [object Object] and the server sees no file.
-    const blob = await (await fetch(file.uri)).blob();
-    body.append('file', new File([blob], file.name, { type: file.type || blob.type }));
-  } else {
-    body.append('file', file as unknown as Blob);
-  }
-
-  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
-  const res = await fetch(
-    `${base}/api/upload/chat-attachment?consultationId=${encodeURIComponent(consultationId)}`,
-    { method: 'POST', headers: { Authorization: `Bearer ${token}` }, body },
+  return uploadMultipart<{ path: string; name: string; size: number }>(
+    `/api/upload/chat-attachment?consultationId=${encodeURIComponent(consultationId)}`,
+    file,
+    'Could not upload that document.',
   );
-
-  if (!res.ok) {
-    let detail: { error?: string } = {};
-    try {
-      detail = await res.json();
-    } catch {
-      // non-JSON error body
-    }
-    throw new Error(detail.error ?? 'Could not upload that document.');
-  }
-
-  return res.json() as Promise<{ path: string; name: string; size: number }>;
 }
 
 
