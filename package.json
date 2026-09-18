@@ -48,7 +48,8 @@
     "android": "expo start --android",
     "ios": "expo start --ios",
     "web": "expo start --web",
-    "lint": "expo lint"
+    "lint": "expo lint",
+    "check:native": "node scripts/check-native-deps.mjs"
   },
   "private": true,
   "expo": {

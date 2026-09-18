@@ -29,9 +29,23 @@ const UNUSED_AGORA_EXTENSIONS = [
   'libagora_video_quality_analyzer_extension.so',
   'libagora_video_av1_encoder_extension.so',
   'libagora_screen_capture_extension.so',
-  // Only used by Agora's MediaPlayer, which this app never opens.
-  'libagora-ffmpeg.so',
 ];
+
+/**
+ * NOT excludable, however unused the feature sounds: libagora-ffmpeg.so.
+ *
+ * It reads like a MediaPlayer dependency and was dropped on that assumption.
+ * It is a DT_NEEDED entry of libagora-rtc-sdk.so itself, so removing it makes
+ * the core RTC library fail to load — dlopen returns null, every engine call
+ * then no-ops, and voice and video both sit on "Connecting..." forever with no
+ * error raised anywhere, because nothing native is running to raise one.
+ *
+ * Verified by reading the ELF dynamic section of the built APK:
+ *   libagora-rtc-sdk.so -> libagora-ffmpeg, libagora-fdkaac, libagora-soundtouch,
+ *                          libaosl, libvideo_dec
+ * Anything on that list has to ship. The extensions above are dlopen'd by name
+ * at runtime and are genuinely optional.
+ */
 
 module.exports = function withNativeTrim(config) {
   return withAppBuildGradle(config, (cfg) => {
