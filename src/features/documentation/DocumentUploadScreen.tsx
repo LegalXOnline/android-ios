@@ -178,7 +178,7 @@ export function DocumentUploadScreen() {
 const styles = StyleSheet.create({
   flex: { flex: 1 },
   centre: { flex: 1, alignItems: 'center', justifyContent: 'center' },
-  content: { padding: 18, paddingBottom: 120, gap: 11 },
+  content: { padding: 18, paddingBottom: 24, gap: 11 },
   intro: { ...LXType.bodySmall, color: LX.inkMuted, marginBottom: 4 },
 
   slot: {

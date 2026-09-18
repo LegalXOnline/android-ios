@@ -145,7 +145,7 @@ const styles = StyleSheet.create({
   scrollContent: {
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingVertical: Spacing.md,
-    paddingBottom: 110,
+    paddingBottom: 24,
     gap: Spacing.xl,
   },
   balanceCard: {

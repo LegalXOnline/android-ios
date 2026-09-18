@@ -1,5 +1,5 @@
-import { StyleSheet } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { StyleSheet, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { PrimaryButton } from '@shared/components';
 import { Colors, Layout, Shadows, Spacing } from '@theme';
@@ -12,18 +12,14 @@ interface StickyBottomCTAProps {
 }
 
 /**
- * A button docked to the bottom of the screen, clear of the system bar.
+ * The action docked at the bottom of a screen.
  *
- * The inset is applied by SafeAreaView rather than added in JS. Both reach the
- * same number when the context is right, but the context is resolved once at
- * the provider and handed down, and on some handsets what arrives here does not
- * describe this screen — which is how the button ended up under the navigation
- * bar on exactly the devices it was supposed to clear. The native view reads
- * the insets dispatched to itself, so there is nothing in between to be stale.
- *
- * `additive` adds the system inset to the padding below, instead of replacing
- * it: the button keeps its breathing room and the bar's background still fills
- * the reserved strip.
+ * Laid out in flow as the last child of the screen's column, not positioned
+ * absolutely over it. Absolute made it the one bottom-docked surface in the app
+ * that landed under the system navigation bar, while the call screen's controls
+ * — the same inset arithmetic, in flow — cleared it on the same handset. In
+ * flow the button also cannot cover the end of the content behind it, so the
+ * scrolling screens no longer need to reserve a gap they were guessing at.
  */
 export function StickyBottomCTA({
   label,
@@ -31,26 +27,22 @@ export function StickyBottomCTA({
   disabled = false,
   testID,
 }: StickyBottomCTAProps) {
+  const insets = useSafeAreaInsets();
+
   return (
-    <SafeAreaView edges={{ bottom: 'additive' }} style={styles.stickyBar}>
+    <View style={[styles.bar, { paddingBottom: insets.bottom + Spacing.md }]}>
       <PrimaryButton label={label} onPress={onPress} disabled={disabled} testID={testID} />
-    </SafeAreaView>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  stickyBar: {
-    position: 'absolute',
-    bottom: 0,
-    left: 0,
-    right: 0,
+  bar: {
     backgroundColor: Colors.surface,
     borderTopWidth: 1,
     borderTopColor: Colors.border,
     paddingHorizontal: Layout.screenPaddingHWide,
     paddingTop: Spacing.md,
-    paddingBottom: Spacing.md,
-    zIndex: 10,
     ...Shadows.card,
   },
 });
