@@ -11,7 +11,7 @@
  */
 import type { ReactNode } from 'react';
 import { GestureHandlerRootView } from 'react-native-gesture-handler';
-import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { SafeAreaProvider, initialWindowMetrics } from 'react-native-safe-area-context';
 
 import { AuthProvider } from './AuthProvider';
 import { ProfileProvider } from './ProfileProvider';
@@ -23,7 +23,9 @@ interface ProvidersProps {
 export function Providers({ children }: ProvidersProps) {
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
-      <SafeAreaProvider>
+      {/* Without seeded metrics the provider renders nothing at all until the
+          native side reports insets, so the first frame is an empty screen. */}
+      <SafeAreaProvider initialMetrics={initialWindowMetrics}>
         <AuthProvider>
           <ProfileProvider>{children}</ProfileProvider>
         </AuthProvider>

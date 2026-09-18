@@ -2,9 +2,9 @@ import type { BottomTabBarProps } from 'expo-router/build/react-navigation/botto
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { createContext, useContext, useEffect, useMemo, useState } from 'react';
 import type { ReactNode } from 'react';
-import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Animated, Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import type { NativeScrollEvent, NativeSyntheticEvent } from 'react-native';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 
 import { LX, LXShadow, LXShape, LXType } from '@theme';
 
@@ -33,17 +33,22 @@ const LABELS: Record<string, string> = {
 /** Height of the bar itself, before the safe-area inset underneath it. */
 export const TAB_BAR_HEIGHT = 60;
 
+/** Gap between the bar and whatever the system reserves below it. */
+const BAR_GAP = 14;
+
 /**
  * Space between the bar and the bottom of the screen.
  *
- * The inset is what the system reserves for itself, not a gap the app may sit
- * in. A gesture handle reports about 16dp and the bar was landing on top of
- * it — taking the larger of the two put it inside the band rather than above
- * it. The clearance is added to whatever the system asked for, so three-button
- * navigation and a gesture handle both end up clear.
+ * Used only for scroll padding and for the hide animation. The bar's own
+ * position comes from SafeAreaView below, which reads the insets dispatched to
+ * it natively instead of trusting a number passed down from the provider.
+ *
+ * The floor is not a replacement for the inset — it is added to, never instead
+ * of. It covers handsets that report a bottom of zero while still drawing a
+ * gesture handle over the app, which is the case the arithmetic could not see.
  */
 function bottomClearance(inset: number): number {
-  return inset + 14;
+  return Math.max(inset, Platform.OS === 'android' ? 24 : 0) + BAR_GAP;
 }
 
 /**
@@ -73,13 +78,12 @@ export function TabBarVisibilityProvider({ children }: { children: ReactNode }) 
 /**
  * How far the bar must travel to be completely gone.
  *
- * This was a constant, and the dock is not a constant height: it is the bar
- * plus whatever the system reserves underneath it. On a handset with three
- * buttons the dock is about 122dp and the constant moved it 100, so a strip
- * stayed on screen below the navigation bar.
+ * Deliberately generous. The dock is the bar plus whatever the system reserves
+ * under it, and under-travelling leaves a visible strip below the navigation
+ * bar; over-travelling is free, because the extra distance is off-screen.
  */
 function hiddenOffset(inset: number): number {
-  return TAB_BAR_HEIGHT + bottomClearance(inset) + 24;
+  return TAB_BAR_HEIGHT + bottomClearance(inset) + 48;
 }
 
 /**
@@ -158,18 +162,14 @@ export function useHideTabBar() {
 }
 
 export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
-  const insets = useSafeAreaInsets();
   const offset = useContext(TabBarVisibility);
 
   return (
     <Animated.View
-      style={[
-        styles.dock,
-        { paddingBottom: bottomClearance(insets.bottom) },
-        offset ? { transform: [{ translateY: offset }] } : null,
-      ]}
+      style={[styles.dock, offset ? { transform: [{ translateY: offset }] } : null]}
       pointerEvents="box-none"
     >
+      <SafeAreaView edges={{ bottom: 'additive' }} style={styles.dockInner} pointerEvents="box-none">
       <View style={styles.bar}>
         {state.routes.map((route, index) => {
           const focused = state.index === index;
@@ -197,6 +197,7 @@ export function FloatingTabBar({ state, navigation }: BottomTabBarProps) {
           );
         })}
       </View>
+      </SafeAreaView>
     </Animated.View>
   );
 }
@@ -207,8 +208,11 @@ const styles = StyleSheet.create({
     left: 0,
     right: 0,
     bottom: 0,
+  },
+  dockInner: {
     alignItems: 'center',
     paddingHorizontal: 16,
+    paddingBottom: BAR_GAP,
   },
   bar: {
     flexDirection: 'row',
