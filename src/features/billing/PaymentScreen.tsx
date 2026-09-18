@@ -13,7 +13,7 @@ import { useAuth } from '@providers/AuthProvider';
 import { submitApplication } from '@services/orders.service';
 
 import { StickyBottomCTA } from './components/StickyBottomCTA';
-import { getBillingOrder } from './billing.store';
+import { getBillingOrder, setOrderReference } from './billing.store';
 
 type PaymentMethod = 'UPI' | 'Card' | 'NetBanking' | 'Wallet' | 'LXCoins';
 
@@ -114,7 +114,9 @@ export function PaymentScreen() {
           orderType: order.order_type,
         },
       });
-      setReference(applicationId.slice(0, 8).toUpperCase());
+      const ref = applicationId.slice(0, 8).toUpperCase();
+      setReference(ref);
+      setOrderReference(ref);
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       router.push('/billing/success' as any);
     } catch (err) {

@@ -121,6 +121,6 @@ export interface AppNotification {
 }
 
 export async function getNotifications(): Promise<AppNotification[]> {
-  const data = await api<{ notifications: AppNotification[] }>('/api/notifications?limit=50');
+  const data = await api<{ notifications: AppNotification[] }>('/api/notifications?pageSize=50');
   return data.notifications ?? [];
 }

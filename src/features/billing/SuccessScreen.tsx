@@ -1,6 +1,5 @@
 import { useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
@@ -12,12 +11,14 @@ import {
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 
-import { getBillingOrder } from './billing.store';
+import { getBillingOrder, getOrderReference } from './billing.store';
 
 export function SuccessScreen() {
   const router = useRouter();
   const order = getBillingOrder();
-  const [orderId] = useState('ORD-84920');
+  // The server's reference for this order. Every customer was being shown
+  // the same invented number, which matches nothing anyone can look up.
+  const orderId = getOrderReference();
 
   const handleViewOrders = () => {
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -48,7 +49,7 @@ export function SuccessScreen() {
           </View>
 
           <Text style={styles.title}>Payment Successful!</Text>
-          <Text style={styles.orderIdText}>Order ID: {orderId}</Text>
+          {orderId && <Text style={styles.orderIdText}>Order ID: {orderId}</Text>}
           <Badge label="Payment Confirmed" variant="success" />
         </View>
 

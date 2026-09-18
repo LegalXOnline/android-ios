@@ -1,7 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
@@ -181,13 +181,22 @@ export function CallHistoryScreen() {
         contentContainerStyle={styles.listContent}
         ItemSeparatorComponent={() => <View style={styles.separator} />}
         ListEmptyComponent={
-          <EmptyState
-            title="No Consultations Found"
-            description="You haven't scheduled or completed any advocate consultations under this filter."
-            symbol={{ ios: 'phone.down.fill', android: 'call_end', web: 'call_end' }}
-            actionLabel="Find an Advocate"
-            onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as Href)}
-          />
+          // An empty list and a list that has not loaded look identical. Saying
+          // "no consultations" before the fetch answers tells a client with a
+          // full history that they have none.
+          loading ? (
+            <View style={styles.loading}>
+              <ActivityIndicator color={Colors.primary} />
+            </View>
+          ) : (
+            <EmptyState
+              title="No Consultations Found"
+              description="You haven't scheduled or completed any advocate consultations under this filter."
+              symbol={{ ios: 'phone.down.fill', android: 'call_end', web: 'call_end' }}
+              actionLabel="Find an Advocate"
+              onActionPress={() => router.push('/(tabs)/talk-to-lawyer' as Href)}
+            />
+          )
         }
         showsVerticalScrollIndicator={false}
       />
@@ -289,6 +298,7 @@ export function CallHistoryScreen() {
 }
 
 const styles = StyleSheet.create({
+  loading: { paddingVertical: Spacing.xxl * 2, alignItems: 'center' },
   filterBar: {
     flexDirection: 'row',
     paddingHorizontal: Layout.screenPaddingHWide,

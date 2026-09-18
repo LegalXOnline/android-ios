@@ -52,3 +52,20 @@ export function setBillingOrder(order: Partial<BillingOrderPayload>): void {
 export function resetBillingOrder(): void {
   currentBillingOrder = { ...DEFAULT_BILLING_ORDER };
 }
+
+/**
+ * The reference the server gave this order.
+ *
+ * Kept here rather than in the paying screen's state: that screen navigates
+ * away the moment the order lands, so anything held locally is gone before the
+ * confirmation can show it.
+ */
+let currentOrderReference: string | null = null;
+
+export function getOrderReference(): string | null {
+  return currentOrderReference;
+}
+
+export function setOrderReference(reference: string | null): void {
+  currentOrderReference = reference;
+}
