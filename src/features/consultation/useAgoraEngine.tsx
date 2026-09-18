@@ -1,6 +1,7 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { PermissionsAndroid, Platform, View, type ViewProps } from 'react-native';
 
+import { startCallService, stopCallService } from '@modules/call-service';
 import type { AgoraSession } from '@services/consultations.service';
 
 /**
@@ -9,6 +10,13 @@ import type { AgoraSession } from '@services/consultations.service';
  * react-native-agora is a native module: it is absent in Expo Go and on web,
  * and a top-level import there takes the whole bundle down. Loading it lazily
  * keeps every other screen working and lets the call screen say so plainly.
+ *
+ * createAgoraRtcEngine() does not create anything — it returns one process-wide
+ * instance, and its event handlers live in a static array shared by every
+ * caller. Two rooms therefore share one engine: the second join is refused
+ * because the first never left, a stale room's handler still fires, and
+ * release() from either tears down both. Everything below exists to keep that
+ * single instance owned by exactly one room at a time.
  */
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -22,6 +30,46 @@ function loadAgora(): Agora | null {
   } catch {
     return null;
   }
+}
+
+/**
+ * Who currently owns the shared engine.
+ *
+ * A room claims this on mount and clears it on teardown. A room that no longer
+ * holds it must not touch the engine: its cleanup would otherwise leave the
+ * channel the *next* call just joined, which is how a call ends a second after
+ * it connects.
+ */
+let owner: symbol | null = null;
+let initialised = false;
+
+/** Tears the shared engine down to a state the next room can claim cleanly. */
+function teardown(agora: Agora, rtc: Agora, handler: unknown, video: boolean) {
+  stopCallService();
+  try {
+    if (handler) rtc?.unregisterEventHandler(handler);
+  } catch {
+    // Never registered, or already gone with the engine.
+  }
+  try {
+    if (video) rtc?.stopPreview();
+  } catch {
+    // Preview was never started.
+  }
+  try {
+    rtc?.leaveChannel();
+  } catch {
+    // Not in a channel.
+  }
+  try {
+    // release() is what frees the microphone and camera. Without it Android
+    // keeps the in-call audio mode, and the ongoing-call chip keeps counting
+    // long after the call screen is gone.
+    rtc?.release();
+  } catch {
+    // Already released.
+  }
+  initialised = false;
 }
 
 /**
@@ -73,16 +121,38 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
   const [muted, setMuted] = useState(false);
   const [cameraOff, setCameraOff] = useState(false);
 
+  // hangUp() leaves before navigating away, and the unmount that follows must
+  // not run the same teardown a second time against an engine another room may
+  // by then have claimed.
+  const releasedRef = useRef(false);
+
   useEffect(() => {
     if (!agora) return;
 
-    let cancelled = false;
+    const ticket = Symbol('call');
     let rtc: Agora = null;
+    let handler: unknown = null;
+    let cancelled = false;
+
+    releasedRef.current = false;
+
+    // A previous room that unmounted without unwinding still holds the shared
+    // engine. Claiming it here is what lets a second call connect at all.
+    if (owner && initialised) {
+      try {
+        agora.createAgoraRtcEngine()?.release();
+      } catch {
+        // Nothing to reclaim.
+      }
+      initialised = false;
+    }
+    owner = ticket;
 
     (async () => {
       try {
         const allowed = await grantCapture(video);
-        if (cancelled) return;
+        if (cancelled || owner !== ticket) return;
+
         if (!allowed) {
           setError(
             video
@@ -100,8 +170,9 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           // publisher tokens for both sides.
           channelProfile: agora.ChannelProfileType.ChannelProfileCommunication,
         });
+        initialised = true;
 
-        rtc.registerEventHandler({
+        handler = {
           onJoinChannelSuccess: () => {
             if (!cancelled) {
               setJoined(true);
@@ -122,7 +193,8 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           onError: (code: number, msg: string) => {
             if (!cancelled) setError(msg || `Call error ${code}`);
           },
-        });
+        };
+        rtc.registerEventHandler(handler);
 
         rtc.enableAudio();
         rtc.enableLocalAudio(true);
@@ -135,6 +207,18 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           rtc.disableVideo();
         }
 
+        // Ownership can change during the awaits above. Joining after that
+        // point puts a dead room into a live channel that nothing will leave.
+        if (cancelled || owner !== ticket) {
+          teardown(agora, rtc, handler, video);
+          return;
+        }
+
+        // Started before the join, not after: the grant has to be held by the
+        // time capture begins, or a client who backgrounds the app during the
+        // connect goes silent without either side being told.
+        startCallService(video);
+
         rtc.joinChannel(session.token, session.channelName, session.uid, {
           clientRoleType: agora.ClientRoleType.ClientRoleBroadcaster,
           publishMicrophoneTrack: true,
@@ -143,7 +227,7 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
           autoSubscribeVideo: video,
         });
 
-        if (!cancelled) setEngine(rtc);
+        setEngine(rtc);
       } catch (err) {
         if (!cancelled) setError((err as Error).message);
       }
@@ -151,12 +235,9 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
 
     return () => {
       cancelled = true;
-      try {
-        rtc?.leaveChannel();
-        rtc?.release();
-      } catch {
-        // Already gone. Nothing to unwind.
-      }
+      if (owner !== ticket) return;
+      owner = null;
+      if (!releasedRef.current) teardown(agora, rtc, handler, video);
     };
   }, [agora, session.agoraAppId, session.token, session.channelName, session.uid, video]);
 
@@ -179,13 +260,11 @@ export function useAgoraEngine(session: AgoraSession): EngineState {
   }, [engine]);
 
   const leave = useCallback(async () => {
-    try {
-      engine?.leaveChannel();
-      engine?.release();
-    } catch {
-      // Already released.
-    }
-  }, [engine]);
+    if (releasedRef.current) return;
+    releasedRef.current = true;
+    owner = null;
+    if (agora && engine) teardown(agora, engine, null, video);
+  }, [agora, engine, video]);
 
   const RemoteView = useCallback(
     (props: ViewProps & { uid: number }) => {

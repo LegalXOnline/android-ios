@@ -1,0 +1,22 @@
+plugins {
+  id 'com.android.library'
+  id 'expo-module-gradle-plugin'
+}
+
+group = 'com.legalx.callservice'
+version = '1.0.0'
+
+android {
+  namespace "com.legalx.callservice"
+  defaultConfig {
+    versionCode 1
+    versionName '1.0.0'
+  }
+}
+
+dependencies {
+  // ServiceCompat.startForeground and NotificationCompat both live here. Pinned
+  // to the version expo-notifications resolves so the build does not end up
+  // arbitrating between two androidx.core versions.
+  implementation 'androidx.core:core:1.17.0'
+}

@@ -1,0 +1,7 @@
+{
+  "name": "call-service",
+  "version": "1.0.0",
+  "description": "Keeps microphone and camera capture alive while a consultation is backgrounded.",
+  "main": "index.ts",
+  "private": true
+}

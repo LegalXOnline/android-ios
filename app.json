@@ -39,9 +39,11 @@
         "android.permission.ACCESS_NETWORK_STATE",
         "android.permission.BLUETOOTH_CONNECT",
         "android.permission.POST_NOTIFICATIONS",
-        "android.permission.VIBRATE"
-      ],
-      "edgeToEdgeEnabled": true
+        "android.permission.VIBRATE",
+        "android.permission.FOREGROUND_SERVICE",
+        "android.permission.FOREGROUND_SERVICE_MICROPHONE",
+        "android.permission.FOREGROUND_SERVICE_CAMERA"
+      ]
     },
     "web": {
       "output": "static",
@@ -92,10 +94,6 @@
         "projectId": "62c91cd9-f3ca-4cc9-9f9b-c0c733351ee7"
       }
     },
-    "owner": "karolix",
-    "androidNavigationBar": {
-      "barStyle": "dark-content",
-      "backgroundColor": "#00000000"
-    }
+    "owner": "karolix"
   }
 }
