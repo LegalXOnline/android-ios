@@ -46,6 +46,9 @@ export async function uploadMultipart<T>(
     const xhr = new XMLHttpRequest();
     xhr.open('POST', `${base}${path}`);
     xhr.setRequestHeader('Authorization', `Bearer ${token}`);
+    // Without this the request waits forever on a stalled connection, and the
+    // upload slot spins with nothing to report.
+    xhr.timeout = 120_000;
 
     xhr.onload = () => {
       let parsed: { error?: string } = {};

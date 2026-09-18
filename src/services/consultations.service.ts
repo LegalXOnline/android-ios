@@ -1,5 +1,4 @@
 import { api } from './api';
-import { getAccessToken } from './supabase';
 import { uploadMultipart } from './upload';
 
 /**
@@ -158,25 +157,14 @@ export async function uploadChatAttachment(
 /**
  * A temporary link to one document from a consultation.
  *
- * The endpoint redirects to a signed URL rather than returning one, so the
- * redirect is read instead of followed: the signed URL is what the viewer can
- * open, and following it here would download the file into memory for nothing.
+ * Asked for as JSON rather than following the endpoint's redirect. The signed
+ * URL is what gets handed to a viewer, and reading a Location header back out
+ * of a redirect is not something every runtime exposes — the browser still
+ * gets the redirect, which is what an <img> or a download needs.
  */
 export async function attachmentUrl(consultationId: string, path: string): Promise<string> {
-  const token = await getAccessToken();
-  if (!token) throw new Error('Please sign in to open this document.');
-
-  const base = process.env.EXPO_PUBLIC_API_URL ?? 'https://legalx-backend-gl4b.onrender.com';
-  const res = await fetch(
-    `${base}/api/consultations/${consultationId}/attachment?path=${encodeURIComponent(path)}`,
-    { method: 'GET', headers: { Authorization: `Bearer ${token}` }, redirect: 'manual' },
+  const { url } = await api<{ url: string }>(
+    `/api/consultations/${consultationId}/attachment?format=json&path=${encodeURIComponent(path)}`,
   );
-
-  const location = res.headers.get('location');
-  if (location) return location;
-
-  // Some runtimes follow the redirect regardless; the final URL is the signed
-  // one and is just as usable.
-  if (res.ok && res.url) return res.url;
-  throw new Error('That document is no longer available.');
+  return url;
 }
