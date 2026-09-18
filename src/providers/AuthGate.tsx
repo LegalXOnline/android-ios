@@ -4,6 +4,7 @@ import type { ReactNode } from 'react';
 import * as SplashScreen from 'expo-splash-screen';
 
 import { PortalNoticeScreen } from '@features/auth/PortalNoticeScreen';
+import { WhatsAppButton } from '@shared/components/WhatsAppButton';
 import { useAuth } from './AuthProvider';
 import { usePushRouting } from './usePushRouting';
 
@@ -44,5 +45,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     return <PortalNoticeScreen role={user.role === 'admin' ? 'admin' : 'lawyer'} />;
   }
 
-  return <>{children}</>;
+  return (
+    <>
+      {children}
+      {/* Only for signed-in clients: a lawyer or an admin has their own
+          channels, and the onboarding screens should not offer support before
+          somebody even has an account. */}
+      {clientOnly && <WhatsAppButton />}
+    </>
+  );
 }
