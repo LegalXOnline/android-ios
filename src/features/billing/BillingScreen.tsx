@@ -6,10 +6,8 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   AppHeader,
   AppTextInput,
-  Badge,
   Divider,
   SafeScreenWrapper,
-  SecondaryButton,
 } from '@shared/components';
 import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
 import { useGoBack } from '@shared/hooks/useGoBack';

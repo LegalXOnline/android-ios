@@ -2,7 +2,6 @@ import { SymbolView } from 'expo-symbols';
 import { Fragment } from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
   ScrollView,
   StyleSheet,

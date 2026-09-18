@@ -1,7 +1,7 @@
 import { useRouter, type Href } from 'expo-router';
 import { SymbolView, type SymbolViewProps } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
@@ -20,8 +20,6 @@ import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typograp
 import { useGoBack } from '@shared/hooks/useGoBack';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';
-import { getBillingOrder, setBillingOrder } from '../billing/billing.store';
-import { useAuth } from '@providers/AuthProvider';
 import {
   getLawyerBySlug,
   toDetailRow,
@@ -88,10 +86,7 @@ export function LawyerProfileScreen({ lawyerId }: LawyerProfileScreenProps) {
   const [coins, setCoins] = useState<number | null>(null);
   const [startError, setStartError] = useState<string | null>(null);
 
-  const [selectedLanguage, setSelectedLanguage] = useState('English');
-  const [clientNotes, setClientNotes] = useState('');
 
-  const { user } = useAuth();
   const [lawyer, setLawyer] = useState<LawyerDetailRow | null>(null);
   const [loading, setLoading] = useState(true);
   const [attempt, setAttempt] = useState(0);

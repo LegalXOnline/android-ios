@@ -1,7 +1,7 @@
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
 import { useEffect, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 
 import {
   AppHeader,
@@ -15,8 +15,7 @@ import {
 import { useHideTabBar } from '@shared/components/navigation/FloatingTabBar';
 import { useAuth } from '@providers/AuthProvider';
 import { getServiceBySlug, type ServiceDetail } from '@services/services.service';
-import { Colors, FontSize, FontWeight, Layout, Radii, Shadows, Spacing, Typography } from '@theme';
-import { LX, LXShape, LXType } from '@theme';
+import { Colors, FontSize, FontWeight, Layout, LX, LXShape, Shadows, Spacing, Typography } from '@theme';
 import { useGoBack } from '@shared/hooks/useGoBack';
 
 import { StickyBottomCTA } from '../billing/components/StickyBottomCTA';

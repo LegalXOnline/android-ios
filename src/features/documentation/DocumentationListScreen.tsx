@@ -4,7 +4,6 @@ import { FlatList, RefreshControl, StyleSheet, View, type ListRenderItem } from 
 
 import {
   AppHeader,
-  Chip,
   EmptyState,
   ErrorState,
   SafeScreenWrapper,
@@ -19,8 +18,7 @@ import {
   useTabBarInset,
 } from '@shared/components/navigation/FloatingTabBar';
 import { SymbolView } from 'expo-symbols';
-import { Colors, Layout, Spacing, Typography, Radii } from '@theme';
-import { LX, LXShape, LXType } from '@theme';
+import { Colors, Layout, LX, LXShape, Spacing, Typography } from '@theme';
 import { TouchableOpacity, Text } from 'react-native';
 
 import { getServices, type ServiceCard as ServiceCardData } from '@services/services.service';

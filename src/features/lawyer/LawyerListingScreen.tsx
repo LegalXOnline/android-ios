@@ -1,10 +1,9 @@
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View, Text, TouchableOpacity, type ListRenderItem } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, View, Text, TouchableOpacity, type ListRenderItem } from 'react-native';
 
 import {
   AppHeader,
-  Chip,
   EmptyState,
   ErrorState,
   LawyerCard,
@@ -68,13 +67,6 @@ export function LawyerListingScreen() {
     };
   }, [attempt]);
   const [isFilterModalVisible, setIsFilterModalVisible] = useState(false);
-
-  const onRefresh = () => {
-    setRefreshing(true);
-    setTimeout(() => {
-      setRefreshing(false);
-    }, 1000);
-  };
 
   // Derived, so a chip never promises a practice area nobody covers.
   const categories = useMemo<LawyerCategory[]>(() => {
